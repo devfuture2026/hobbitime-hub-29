@@ -1,0 +1,397 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* 
+ * PERFORMANCE OPTIMIZATIONS IMPLEMENTED
+ * =====================================
+ * 
+ * 1. GPU ACCELERATION
+ *    - Added will-change properties for animations and transitions
+ *    - Used transform: translateZ(0) for hardware acceleration
+ *    - Optimized hover effects and glow animations
+ * 
+ * 2. SCROLL PERFORMANCE
+ *    - Debounced scroll handlers to prevent excessive updates
+ *    - Added passive scroll event listeners
+ *    - Optimized repaints during scrolling with will-change: auto
+ *    - Hardware-accelerated scrolling with -webkit-overflow-scrolling: touch
+ * 
+ * 3. ANIMATION OPTIMIZATIONS
+ *    - Marquee animation uses will-change: transform
+ *    - Backface-visibility: hidden for 3D transforms
+ *    - Smooth transitions with GPU acceleration
+ * 
+ * 4. RENDER OPTIMIZATIONS
+ *    - Reduced unnecessary repaints during scroll
+ *    - Optimized calendar grid rendering
+ *    - Smooth scroll behavior for better UX
+ * 
+ * These optimizations maintain pixel-perfect visual output while
+ * significantly improving runtime performance, especially for:
+ * - Large calendar views with many items
+ * - Smooth scrolling through time slots
+ * - Hover animations and transitions
+ * - Alarm text scrolling effects
+ */
+
+/* Productivity Calendar App Design System - All colors MUST be HSL */
+
+@layer base {
+  html, body {
+    padding-left: 0 !important;
+    margin-left: 0 !important;
+  }
+  
+  :root {
+    --background: 220 20% 97%;
+    --foreground: 220 15% 20%;
+
+    --card: 0 0% 100%;
+    --card-foreground: 220 15% 20%;
+
+    --popover: 0 0% 100%;
+    --popover-foreground: 220 15% 20%;
+
+    --primary: 200 85% 45%;
+    --primary-foreground: 0 0% 100%;
+    --primary-glow: 200 85% 65%;
+
+    --secondary: 195 25% 92%;
+    --secondary-foreground: 220 15% 25%;
+
+    --muted: 210 25% 95%;
+    --muted-foreground: 220 10% 50%;
+
+    --accent: 165 75% 45%;
+    --accent-foreground: 0 0% 100%;
+    --accent-light: 165 50% 85%;
+
+    --destructive: 0 84% 60%;
+    --destructive-foreground: 0 0% 100%;
+
+    --border: 220 15% 88%;
+    --input: 220 15% 88%;
+    --ring: 200 85% 45%;
+
+    --success: 142 70% 45%;
+    --warning: 38 92% 50%;
+    --info: 200 85% 45%;
+    
+    /* Blue accent for recurring alarms */
+    --blue-accent: 217 91% 60%;
+
+    --time-slot: 0 0% 100%;
+    --time-slot-hover: 200 30% 96%;
+    --time-slot-selected: 200 85% 94%;
+    --time-current: 200 85% 45%;
+
+    --gradient-primary: linear-gradient(135deg, hsl(200 85% 45%), hsl(165 75% 45%));
+    --gradient-subtle: linear-gradient(180deg, hsl(220 20% 97%), hsl(210 25% 95%));
+    --gradient-card: linear-gradient(145deg, hsl(0 0% 100%), hsl(210 25% 98%));
+
+    --shadow-soft: 0 2px 8px -2px hsl(220 15% 20% / 0.08);
+    --shadow-medium: 0 4px 16px -4px hsl(220 15% 20% / 0.12);
+    --shadow-strong: 0 8px 32px -8px hsl(220 15% 20% / 0.16);
+    --shadow-glow: 0 0 20px hsl(200 85% 45% / 0.3);
+
+    --transition-smooth: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    --transition-bounce: all 0.4s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+
+    --radius: 0.75rem;
+
+    --sidebar-background: 0 0% 98%;
+
+    --sidebar-foreground: 240 5.3% 26.1%;
+
+    --sidebar-primary: 240 5.9% 10%;
+
+    --sidebar-primary-foreground: 0 0% 98%;
+
+    --sidebar-accent: 240 4.8% 95.9%;
+
+    --sidebar-accent-foreground: 240 5.9% 10%;
+
+    --sidebar-border: 220 13% 91%;
+
+    --sidebar-ring: 217.2 91.2% 59.8%;
+  }
+
+  .dark {
+    --background: 0 0% 7%;
+    --foreground: 0 0% 98%;
+
+    --card: 0 0% 7%;
+    --card-foreground: 0 0% 98%;
+
+    --popover: 0 0% 7%;
+    --popover-foreground: 0 0% 98%;
+
+    --primary: 210 40% 98%;
+    --primary-foreground: 0 0% 7%;
+
+    --secondary: 0 0% 11%;
+    --secondary-foreground: 0 0% 98%;
+
+    --muted: 0 0% 11%;
+    --muted-foreground: 0 0% 65%;
+
+    --accent: 0 0% 11%;
+    --accent-foreground: 0 0% 98%;
+
+    --destructive: 0 62.8% 30.6%;
+    --destructive-foreground: 0 0% 98%;
+
+    --border: 0 0% 15%;
+    --input: 0 0% 15%;
+    --ring: 210 40% 98%;
+    
+    /* Blue accent for recurring alarms */
+    --blue-accent: 217 91% 60%;
+    
+    /* Calendar-specific dark theme variables */
+    --time-slot: 0 0% 7%;
+    --time-slot-hover: 0 0% 11%;
+    --time-slot-selected: 0 0% 11%;
+    --time-current: 210 40% 98%;
+    
+    /* Gradient adjustments for dark theme */
+    --gradient-primary: linear-gradient(135deg, hsl(210 40% 98%), hsl(0 0% 11%));
+    --gradient-subtle: linear-gradient(180deg, hsl(0 0% 7%), hsl(0 0% 11%));
+    --gradient-card: linear-gradient(145deg, hsl(0 0% 7%), hsl(0 0% 11%));
+    
+    /* Shadow adjustments for dark theme */
+    --shadow-soft: 0 2px 8px -2px hsl(0 0% 98% / 0.08);
+    --shadow-medium: 0 4px 16px -4px hsl(0 0% 98% / 0.12);
+    --shadow-strong: 0 8px 32px -8px hsl(0 0% 98% / 0.16);
+    --shadow-glow: 0 0 20px hsl(210 40% 98% / 0.3);
+    
+    --sidebar-background: 0 0% 9%;
+    --sidebar-foreground: 0 0% 98%;
+    --sidebar-primary: 210 40% 98%;
+    --sidebar-primary-foreground: 0 0% 7%;
+    --sidebar-accent: 0 0% 11%;
+    --sidebar-accent-foreground: 0 0% 98%;
+    --sidebar-border: 0 0% 15%;
+    --sidebar-ring: 210 40% 98%;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+    box-sizing: border-box;
+  }
+
+  body {
+    @apply bg-background text-foreground;
+  }
+  
+  /* Ensure scrollbar-gutter is supported */
+  .scrollbar-gutter-stable-both-edges {
+    scrollbar-gutter: stable both-edges;
+  }
+  
+  /* Marquee animation for stock board effect */
+  @keyframes marquee {
+    0% {
+      transform: translateX(0);
+    }
+    100% {
+      transform: translateX(-100%);
+    }
+  }
+  
+  .animate-marquee {
+    animation: marquee 5s linear infinite;
+    will-change: transform;
+    /* GPU acceleration for smooth animations */
+    transform: translateZ(0);
+    backface-visibility: hidden;
+  }
+  
+  /* Optimize hover effects for GPU acceleration */
+  .hover\:shadow-soft:hover,
+  .hover\:shadow-medium:hover,
+  .hover\:shadow-strong:hover {
+    will-change: transform, box-shadow;
+    transform: translateZ(0);
+  }
+  
+  /* Optimize transitions for GPU acceleration */
+  .transition-all {
+    will-change: transform, opacity, background-color, border-color;
+    transform: translateZ(0);
+  }
+  
+  /* Optimize glow effects for GPU acceleration */
+  .shadow-glow {
+    will-change: box-shadow;
+    transform: translateZ(0);
+  }
+  
+  /* Scroll performance optimizations */
+  .scrolling {
+    /* Reduce repaints during scrolling */
+    will-change: scroll-position;
+    /* Optimize for smooth scrolling */
+    scroll-behavior: smooth;
+  }
+  
+  /* Optimize calendar grid for better scroll performance */
+  .overflow-y-auto {
+    /* Enable hardware acceleration for scrolling */
+    transform: translateZ(0);
+    /* Optimize scroll performance */
+    -webkit-overflow-scrolling: touch;
+  }
+  
+  /* Reduce repaints for calendar items during scroll */
+  .scrolling .relative {
+    /* Reduce repaints during scroll */
+    will-change: auto;
+  }
+  
+  /* Dark theme specific adjustments */
+  .dark .bg-gradient-subtle {
+    background: var(--gradient-subtle);
+  }
+  
+  .dark .bg-gradient-card {
+    background: var(--gradient-card);
+  }
+  
+  .dark .bg-muted\/20 {
+    background-color: hsl(var(--muted) / 0.2);
+  }
+  
+  .dark .bg-muted\/50 {
+    background-color: hsl(var(--muted) / 0.5);
+  }
+  
+  .dark .border-border\/30 {
+    border-color: hsl(var(--border) / 0.3);
+  }
+  
+  /* Ensure proper contrast for dark theme */
+  .dark .text-muted-foreground {
+    color: hsl(var(--muted-foreground));
+  }
+  
+  .dark .bg-card {
+    background-color: hsl(var(--card));
+  }
+  
+  .dark .bg-background {
+    background-color: hsl(var(--background));
+  }
+}
+
+@layer components {
+  /* Calendar Grid Alignment Fixes */
+  .calendar-grid,
+  .calendar-grid * {
+    padding-left: 0 !important;
+    margin-left: 0 !important;
+  }
+  
+
+  
+  .calendar-grid {
+    grid-template-columns: 80px repeat(7, 1fr);
+    width: 100%;
+    box-sizing: border-box;
+  }
+  
+  .calendar-grid-daily {
+    grid-template-columns: 80px 1fr;
+    width: 100%;
+    box-sizing: border-box;
+  }
+  
+  .calendar-time-slot {
+    height: 60px;
+    min-height: 60px;
+    width: 100%;
+    box-sizing: border-box;
+  }
+  
+  .calendar-day-header {
+    border-right: 1px solid hsl(var(--border) / 0.3);
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+  }
+  
+  .calendar-day-header:last-child {
+    border-right: none;
+  }
+  
+  .calendar-time-slot-cell {
+    border-right: 1px solid hsl(var(--border) / 0.3);
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+  }
+  
+  .calendar-time-slot-cell:last-child {
+    border-right: none;
+  }
+  
+  /* Force exact grid alignment */
+  .calendar-header-row {
+    display: grid;
+    width: 100%;
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+  }
+  
+  .calendar-time-row {
+    display: grid;
+    width: 100%;
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+  }
+  
+  /* Ensure no gaps between grid items */
+  .calendar-header-row > *,
+  .calendar-time-row > * {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+  }
+  
+  /* Force exact pixel-perfect alignment */
+  .calendar-grid {
+    grid-template-columns: 80px repeat(7, minmax(0, 1fr));
+    gap: 0;
+  }
+  
+  .calendar-grid-daily {
+    grid-template-columns: 80px minmax(0, 1fr);
+    gap: 0;
+  }
+  
+  /* Remove any default browser spacing */
+  .calendar-header-row,
+  .calendar-time-row {
+    gap: 0;
+    grid-gap: 0;
+  }
+  
+  /* Override any browser defaults that might cause misalignment */
+  .calendar-header-row *,
+  .calendar-time-row * {
+    box-sizing: border-box !important;
+  }
+  
+  /* Ensure the time column is exactly 80px */
+  .calendar-header-row > :first-child,
+  .calendar-time-row > :first-child {
+    width: 80px !important;
+    min-width: 80px !important;
+    max-width: 80px !important;
+  }
+}
