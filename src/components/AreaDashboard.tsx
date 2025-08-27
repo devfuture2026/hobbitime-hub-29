@@ -99,21 +99,6 @@ export const AreaDashboard: React.FC<AreaDashboardProps> = ({ areaName, tasks, p
             <ArrowLeft className="w-4 h-4 mr-2" />
             Back
           </Button>
-          <div className="flex items-center space-x-2">
-            {(() => {
-              const Icon = getAreaIcon(areaName);
-              const color = getAreaColor(areaName);
-              return (
-                <span className="p-2 rounded-md text-white" style={{ backgroundColor: color }}>
-                  <Icon className="w-5 h-5" />
-                </span>
-              );
-            })()}
-            <div>
-              <h1 className="text-3xl font-bold text-foreground">{areaName}</h1>
-              <p className="text-muted-foreground text-sm mt-1">{getAreaDescription(areaName)}</p>
-            </div>
-          </div>
         </div>
         <div className="flex items-center space-x-4">
           <div className="w-64">
@@ -125,6 +110,23 @@ export const AreaDashboard: React.FC<AreaDashboardProps> = ({ areaName, tasks, p
             Category
           </Button>
         </div>
+      </div>
+
+      {/* Area Description */}
+      <div className="mb-6">
+        <div className="flex items-center space-x-2 mb-3">
+          {(() => {
+            const Icon = getAreaIcon(areaName);
+            const color = getAreaColor(areaName);
+            return (
+              <span className="p-2 rounded-md text-white" style={{ backgroundColor: color }}>
+                <Icon className="w-5 h-5" />
+              </span>
+            );
+          })()}
+          <h1 className="text-3xl font-bold text-foreground">{areaName}</h1>
+        </div>
+        <p className="text-muted-foreground text-sm ml-12">{getAreaDescription(areaName)}</p>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">

@@ -6,6 +6,7 @@ import { Progress } from '@/components/ui/progress';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { TaskPills } from '@/components/TaskPills';
 import { MoreVertical, Plus } from 'lucide-react';
+import { ActionCard } from '@/components/ActionCard';
 
 interface Project {
   id: string;
@@ -36,10 +37,25 @@ interface ListItem {
   projectId: string;
 }
 
+interface Action {
+  id: string;
+  title: string;
+  description?: string;
+  type: 'alarm' | 'reminder';
+  area: string;
+  // Alarm specific
+  time?: string;
+  enabled?: boolean;
+  daysOfWeek?: string[];
+  // Reminder specific
+  dueDate?: Date | null;
+}
+
 interface CategoryBoardProps {
   project: Project;
   tasks: TaskItem[];
   lists: ListItem[];
+  actions: Action[];
   onAddList: (projectId: string, title: string) => void;
   onRenameList: (listId: string, newTitle: string) => void;
   onDeleteList: (listId: string) => void;
@@ -50,12 +66,17 @@ interface CategoryBoardProps {
   onReorderWithinList: (listId: string, sourceTaskId: string, targetTaskId: string) => void;
   onMoveTaskToList: (taskId: string, toListId: string, beforeTaskId?: string) => void;
   onBack: () => void;
+  onOpenCategorySelection: () => void;
+  onToggleActionEnabled?: (actionId: string, enabled: boolean) => void;
+  onEditAction?: (actionId: string) => void;
+  onDeleteAction?: (actionId: string) => void;
 }
 
 export const CategoryBoard: React.FC<CategoryBoardProps> = ({
   project,
   tasks,
   lists,
+  actions,
   onAddList,
   onRenameList,
   onDeleteList,
@@ -65,7 +86,11 @@ export const CategoryBoard: React.FC<CategoryBoardProps> = ({
   onDeleteTask,
   onReorderWithinList,
   onMoveTaskToList,
-  onBack
+  onBack,
+  onOpenCategorySelection,
+  onToggleActionEnabled,
+  onEditAction,
+  onDeleteAction
 }) => {
   const dragTaskIdRef = useRef<string | null>(null);
   const dragFromListIdRef = useRef<string | null>(null);
@@ -105,15 +130,13 @@ export const CategoryBoard: React.FC<CategoryBoardProps> = ({
             <div className="text-sm text-muted-foreground mb-1">Progress</div>
             <Progress value={progress} />
           </div>
-          <Button onClick={() => {
-            const title = window.prompt('List title', 'To Do')?.trim();
-            if (title) onAddList(project.id, title);
-          }}>
-            <Plus className="w-4 h-4 mr-2" /> Add List
+          <Button onClick={onOpenCategorySelection} className="bg-gradient-primary text-white">
+            <Plus className="w-4 h-4 mr-2" /> Add Category
           </Button>
         </div>
       </div>
 
+      {/* Lists Section */}
       {lists.filter(l => l.projectId === project.id).length === 0 ? (
         <Card>
           <CardContent className="py-8">
@@ -123,7 +146,7 @@ export const CategoryBoard: React.FC<CategoryBoardProps> = ({
       ) : (
         <div className="flex gap-4 overflow-x-auto pb-4">
           {lists.filter(l => l.projectId === project.id).map(list => (
-            <div key={list.id} className="w-72 flex-shrink-0">
+            <div key={list.id} className="w-80 flex-shrink-0">
               <Card className="border-border">
                 <CardHeader className="py-3">
                   <div className="flex items-center justify-between">
@@ -167,77 +190,79 @@ export const CategoryBoard: React.FC<CategoryBoardProps> = ({
                   {(tasksByList[list.id] || []).length === 0 ? (
                     <p className="text-muted-foreground text-sm">No tasks yet — add one below.</p>
                    ) : (
-                     (tasksByList[list.id] || []).map(task => (
-                       <div
-                         key={task.id}
-                         className={`flex items-center space-x-3 p-2 rounded-md hover:bg-muted/50 transition-colors group ${
-                           task.completed ? 'opacity-75' : ''
-                         }`}
-                         draggable
-                         onDragStart={(e) => {
-                           dragTaskIdRef.current = task.id;
-                           dragFromListIdRef.current = list.id;
-                           e.dataTransfer.effectAllowed = 'move';
-                         }}
-                         onDragOver={(e) => { e.preventDefault(); e.dataTransfer.dropEffect = 'move'; }}
-                         onDrop={() => {
-                           if (!dragTaskIdRef.current) return;
-                           if (dragFromListIdRef.current === list.id) {
-                             onReorderWithinList(list.id, dragTaskIdRef.current, task.id);
-                           } else {
-                             onMoveTaskToList(dragTaskIdRef.current, list.id, task.id);
-                           }
-                           dragTaskIdRef.current = null;
-                           dragFromListIdRef.current = null;
-                         }}
-                       >
-                         <input
-                           type="checkbox"
-                           checked={task.completed}
-                           onChange={() => onToggleTask(task.id)}
-                           className="w-4 h-4 rounded border-border"
-                         />
-                          <div className="flex-1">
-                            <div className="flex items-center justify-between mb-2">
-                              <span className={`text-sm font-medium ${task.completed ? 'line-through text-muted-foreground' : ''}`}>
-                                {task.title}
-                              </span>
-                              <div className="flex items-center space-x-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                                <Button 
-                                  size="sm" 
-                                  variant="ghost" 
-                                  className="h-6 w-6 p-0 text-muted-foreground hover:text-foreground" 
-                                  onClick={() => {
-                                    const title = window.prompt('Edit task title', task.title)?.trim();
-                                    if (title) onEditTask(task.id, { title });
-                                  }}
-                                >
-                                  ✏️
-                                </Button>
-                                <Button 
-                                  size="sm" 
-                                  variant="ghost" 
-                                  className="h-6 w-6 p-0 text-muted-foreground hover:text-destructive" 
-                                  onClick={() => {
-                                    if (window.confirm('Delete this task?')) onDeleteTask(task.id);
-                                  }}
-                                >
-                                  🗑️
-                                </Button>
-                              </div>
+                    (tasksByList[list.id] || []).map(task => (
+                      <div
+                        key={task.id}
+                        className={`flex items-center space-x-3 p-2 rounded-md hover:bg-muted/50 transition-colors group ${
+                          task.completed ? 'opacity-75' : ''
+                        }`}
+                        draggable
+                        onDragStart={(e) => {
+                          dragTaskIdRef.current = task.id;
+                          dragFromListIdRef.current = list.id;
+                          e.dataTransfer.effectAllowed = 'move';
+                        }}
+                        onDragOver={(e) => { e.preventDefault(); e.dataTransfer.dropEffect = 'move'; }}
+                        onDrop={() => {
+                          if (!dragTaskIdRef.current) return;
+                          if (dragFromListIdRef.current === list.id) {
+                            onReorderWithinList(list.id, dragTaskIdRef.current, task.id);
+                          } else {
+                            onMoveTaskToList(dragTaskIdRef.current, list.id, task.id);
+                          }
+                          dragTaskIdRef.current = null;
+                          dragFromListIdRef.current = null;
+                        }}
+                      >
+                        <input
+                          type="checkbox"
+                          checked={task.completed}
+                          onChange={() => onToggleTask(task.id)}
+                          className="w-4 h-4 rounded border-border"
+                        />
+                        <div className="flex-1">
+                          <div className="flex items-center justify-between mb-2">
+                            <span className={`text-sm font-medium ${task.completed ? 'line-through text-muted-foreground' : ''}`}>
+                              {task.title}
+                            </span>
+                            <div className="flex items-center space-x-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                              <Button 
+                                size="sm" 
+                                variant="ghost" 
+                                className="h-6 w-6 p-0 text-muted-foreground hover:text-foreground" 
+                                onClick={() => {
+                                  const title = window.prompt('Edit task title', task.title)?.trim();
+                                  if (title) onEditTask(task.id, { title });
+                                }}
+                              >
+                                ✏️
+                              </Button>
+                              <Button 
+                                size="sm" 
+                                variant="ghost" 
+                                className="h-6 w-6 p-0 text-muted-foreground hover:text-destructive" 
+                                onClick={() => {
+                                  if (window.confirm('Delete this task?')) onDeleteTask(task.id);
+                                }}
+                              >
+                                🗑️
+                              </Button>
                             </div>
-                            <TaskPills
-                              startTime={task.startTime}
-                              dueDate={task.dueDate}
-                              duration={task.duration}
-                              priority={task.priority}
-                              effortLevel={task.effortLevel}
-                              description={task.description}
-                              className="mb-1"
-                            />
                           </div>
-                       </div>
-                     ))
+                          
+                          {/* Task Pills - Compact overview of task properties */}
+                          <TaskPills
+                            startTime={task.startTime}
+                            dueDate={task.dueDate}
+                            duration={task.duration}
+                            priority={task.priority}
+                            effortLevel={task.effortLevel}
+                            description={task.description}
+                            className="mb-2"
+                          />
+                        </div>
+                      </div>
+                    ))
                   )}
                   <div className="pt-2">
                     <Input

@@ -49,6 +49,17 @@ type Action = {
   dueDate?: Date | null;
 };
 
+type Project = {
+  id: string;
+  name: string;
+  color: string;
+  tasksCount: number;
+  completedTasks: number;
+  category: 'hobby' | 'work' | 'personal';
+  area: string;
+  dueDate?: Date | null;
+};
+
 const Index = () => {
   const [selectedDate, setSelectedDate] = useState(new Date());
   const [selectedTime, setSelectedTime] = useState<Date | null>(null);
@@ -92,7 +103,7 @@ const Index = () => {
   }, [darkMode]);
 
   // Sample data - Updated wellness projects with routines
-  const [projects, setProjects] = useState([
+  const [projects, setProjects] = useState<Project[]>([
     {
       id: '1',
       name: 'Learning Spanish',
@@ -100,7 +111,8 @@ const Index = () => {
       tasksCount: 12,
       completedTasks: 8,
       category: 'hobby' as const,
-      area: 'Education'
+      area: 'Education',
+      dueDate: null
     },
     {
       id: '2',
@@ -109,7 +121,8 @@ const Index = () => {
       tasksCount: 5,
       completedTasks: 3,
       category: 'personal' as const,
-      area: 'Wellness'
+      area: 'Wellness',
+      dueDate: null
     },
     {
       id: '3',
@@ -118,7 +131,8 @@ const Index = () => {
       tasksCount: 4,
       completedTasks: 2,
       category: 'personal' as const,
-      area: 'Wellness'
+      area: 'Wellness',
+      dueDate: null
     },
     {
       id: '4',
@@ -127,7 +141,8 @@ const Index = () => {
       tasksCount: 6,
       completedTasks: 4,
       category: 'personal' as const,
-      area: 'Wellness'
+      area: 'Wellness',
+      dueDate: null
     },
     {
       id: '5',
@@ -136,7 +151,8 @@ const Index = () => {
       tasksCount: 8,
       completedTasks: 3,
       category: 'work' as const,
-      area: 'Development'
+      area: 'Development',
+      dueDate: null
     }
   ]);
 
@@ -242,14 +258,24 @@ const Index = () => {
   }, []);
 
   const handleSelectList = useCallback(() => {
-    // For now, just close the modal - list creation could be added later
+    // Create a new list for the currently selected project
+    if (selectedCategoryId) {
+      const listTitle = window.prompt('Enter list title:', 'New List')?.trim();
+      if (listTitle) {
+        setLists(prev => [...prev, { 
+          id: Date.now().toString(), 
+          title: listTitle, 
+          projectId: selectedCategoryId 
+        }]);
+      }
+    }
     setIsCategorySelectionModalOpen(false);
-    // Could open a list creation modal here
-  }, []);
+  }, [selectedCategoryId]);
 
   const handleSelectAction = useCallback(() => {
     setIsCategorySelectionModalOpen(false);
     setIsActionModalOpen(true);
+    // The ActionModal will use the selected project's area as the locked area
   }, []);
 
   const handleCreateAction = useCallback((actionData: Action) => {
@@ -453,6 +479,7 @@ const Index = () => {
                 project={projects.find(p => p.id === selectedCategoryId)!}
                 tasks={tasks}
                 lists={lists}
+                actions={actions}
                 onBack={handleBackToArea}
                 onAddList={(projectId, title) => setLists(prev => [...prev, { id: Date.now().toString(), title, projectId }])}
                 onRenameList={(listId, newTitle) => setLists(prev => prev.map(l => l.id === listId ? { ...l, title: newTitle } : l))}
@@ -496,6 +523,17 @@ const Index = () => {
                     list.splice(beforeIdx, 0, moved);
                     return [...others, ...list];
                   });
+                }}
+                onOpenCategorySelection={handleOpenCategorySelection}
+                onToggleActionEnabled={(actionId, enabled) => {
+                  setActions(prev => prev.map(a => a.id === actionId ? { ...a, enabled } : a));
+                }}
+                onEditAction={(actionId) => {
+                  // For now, just log - could implement edit functionality later
+                  console.log('Edit action:', actionId);
+                }}
+                onDeleteAction={(actionId) => {
+                  setActions(prev => prev.filter(a => a.id !== actionId));
                 }}
               />
             )
@@ -552,7 +590,7 @@ const Index = () => {
           isOpen={isActionModalOpen}
           onClose={handleActionModalClose}
           onCreateAction={handleCreateAction}
-          lockedArea={selectedArea || undefined}
+          lockedArea={selectedCategoryId ? projects.find(p => p.id === selectedCategoryId)?.area : selectedArea || undefined}
         />
       )}
 
