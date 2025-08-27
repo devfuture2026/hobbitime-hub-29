@@ -77,6 +77,20 @@ export const AreaDashboard: React.FC<AreaDashboardProps> = ({ areaName, tasks, p
 
   const draggedIdRef = useRef<string | null>(null);
 
+  const getAreaDescription = useCallback((name: string) => {
+    const descriptions: Record<string, string> = {
+      'Development': 'This is your Development area.',
+      'Wellness': 'This is your Wellness area.',
+      'Education': 'This is your Education area.',
+      'Chores': 'This is your Chores area.',
+      'Community': 'This is your Community area.',
+      'Leisure': 'This is your Leisure area.',
+      'Finance': 'This is your Finance area.',
+      'Mindfulness': 'This is your Mindfulness area.'
+    };
+    return descriptions[name] ?? `This is your ${name} area.`;
+  }, []);
+
   return (
     <div className="flex-1 p-6">
       <div className="flex items-center justify-between mb-6">
@@ -95,7 +109,10 @@ export const AreaDashboard: React.FC<AreaDashboardProps> = ({ areaName, tasks, p
                 </span>
               );
             })()}
-            <h1 className="text-3xl font-bold text-foreground">{areaName}</h1>
+            <div>
+              <h1 className="text-3xl font-bold text-foreground">{areaName}</h1>
+              <p className="text-muted-foreground text-sm mt-1">{getAreaDescription(areaName)}</p>
+            </div>
           </div>
         </div>
         <div className="flex items-center space-x-4">
@@ -103,7 +120,10 @@ export const AreaDashboard: React.FC<AreaDashboardProps> = ({ areaName, tasks, p
             <div className="text-sm text-muted-foreground mb-1">Progress</div>
             <Progress value={progress} />
           </div>
-          <Button onClick={() => onAddCategory(areaName)} className="bg-gradient-primary text-white">Add Project</Button>
+          <Button onClick={() => onAddCategory(areaName)} className="bg-gradient-primary text-white">
+            <Plus className="w-4 h-4 mr-2" />
+            Category
+          </Button>
         </div>
       </div>
 

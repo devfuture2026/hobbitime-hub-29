@@ -8,6 +8,8 @@ import { AlarmPanel } from '@/components/AlarmPanel';
 import { TaskModal } from '@/components/TaskModal';
 import { ProjectModal } from '@/components/ProjectModal';
 import { ProjectTasksModal } from '@/components/ProjectTasksModal';
+import { CategorySelectionModal } from '@/components/CategorySelectionModal';
+import { ActionModal } from '@/components/ActionModal';
 import { Header } from '@/components/Header';
 import { SettingsModal } from '@/components/SettingsModal';
 import { addDays, startOfToday } from 'date-fns';
@@ -30,6 +32,21 @@ type Task = {
   effortLevel?: 'small' | 'medium' | 'large';
   isRecurring?: boolean;
   recurringPattern?: 'daily' | 'weekly' | 'monthly';
+  description?: string;
+};
+
+type Action = {
+  id: string;
+  title: string;
+  description?: string;
+  type: 'alarm' | 'reminder';
+  area: string;
+  // Alarm specific
+  time?: string;
+  enabled?: boolean;
+  daysOfWeek?: string[];
+  // Reminder specific
+  dueDate?: Date | null;
 };
 
 const Index = () => {
@@ -38,6 +55,8 @@ const Index = () => {
   const [isTaskModalOpen, setIsTaskModalOpen] = useState(false);
   const [isProjectModalOpen, setIsProjectModalOpen] = useState(false);
   const [isProjectTasksModalOpen, setIsProjectTasksModalOpen] = useState(false);
+  const [isCategorySelectionModalOpen, setIsCategorySelectionModalOpen] = useState(false);
+  const [isActionModalOpen, setIsActionModalOpen] = useState(false);
   const [selectedProjectId, setSelectedProjectId] = useState<string>();
   const [quickAddProjectId, setQuickAddProjectId] = useState<string>();
   const [searchQuery, setSearchQuery] = useState('');
@@ -46,6 +65,7 @@ const Index = () => {
   const [selectedArea, setSelectedArea] = useState<string | null>(null);
   const [selectedCategoryId, setSelectedCategoryId] = useState<string | null>(null);
   const [lists, setLists] = useState<Array<{ id: string; title: string; projectId: string }>>([]);
+  const [actions, setActions] = useState<Action[]>([]);
   const [categoryFilter, setCategoryFilter] = useState<'all' | 'active' | 'completed' | 'overdue'>('all');
   const [quickAddTaskData, setQuickAddTaskData] = useState<{ title: string; listId: string } | null>(null);
   const draggedTaskIdRef = useRef<string | null>(null);
@@ -71,7 +91,7 @@ const Index = () => {
     localStorage.setItem('darkMode', JSON.stringify(darkMode));
   }, [darkMode]);
 
-  // Sample data - in a real app, this would come from a backend
+  // Sample data - Updated wellness projects with routines
   const [projects, setProjects] = useState([
     {
       id: '1',
@@ -84,15 +104,33 @@ const Index = () => {
     },
     {
       id: '2',
-      name: 'Work Out',
+      name: 'Morning Routine',
       color: '#F59E0B',
-      tasksCount: 15,
-      completedTasks: 10,
+      tasksCount: 5,
+      completedTasks: 3,
       category: 'personal' as const,
       area: 'Wellness'
     },
     {
       id: '3',
+      name: 'Afternoon Routine',
+      color: '#EF4444',
+      tasksCount: 4,
+      completedTasks: 2,
+      category: 'personal' as const,
+      area: 'Wellness'
+    },
+    {
+      id: '4',
+      name: 'Nightly Routine',
+      color: '#8B5CF6',
+      tasksCount: 6,
+      completedTasks: 4,
+      category: 'personal' as const,
+      area: 'Wellness'
+    },
+    {
+      id: '5',
       name: 'MindTrack: Otto',
       color: '#3B82F6',
       tasksCount: 8,
@@ -189,9 +227,37 @@ const Index = () => {
     setProjects(prevProjects => [...prevProjects, newProject]);
   }, []);
 
-  // Fix: Create handler to open project modal (not create project directly)
-  const handleOpenProjectModal = useCallback(() => {
+  // Fix: Create handler to open category selection modal
+  const handleOpenCategorySelection = useCallback(() => {
+    setIsCategorySelectionModalOpen(true);
+  }, []);
+
+  const handleCategorySelectionClose = useCallback(() => {
+    setIsCategorySelectionModalOpen(false);
+  }, []);
+
+  const handleSelectProject = useCallback(() => {
+    setIsCategorySelectionModalOpen(false);
     setIsProjectModalOpen(true);
+  }, []);
+
+  const handleSelectList = useCallback(() => {
+    // For now, just close the modal - list creation could be added later
+    setIsCategorySelectionModalOpen(false);
+    // Could open a list creation modal here
+  }, []);
+
+  const handleSelectAction = useCallback(() => {
+    setIsCategorySelectionModalOpen(false);
+    setIsActionModalOpen(true);
+  }, []);
+
+  const handleCreateAction = useCallback((actionData: Action) => {
+    setActions(prevActions => [...prevActions, actionData]);
+  }, []);
+
+  const handleActionModalClose = useCallback(() => {
+    setIsActionModalOpen(false);
   }, []);
 
   const handleProjectSelect = useCallback((projectId: string) => {
@@ -354,9 +420,7 @@ const Index = () => {
                 tasks={tasks}
                 projects={projects}
                 onBack={handleBackToAreas}
-                onAddCategory={(areaName) => {
-                  setIsProjectModalOpen(true);
-                }}
+                onAddCategory={handleOpenCategorySelection}
                 onCategorySelect={handleCategorySelect}
                 onQuickAddTask={(projectId) => {
                   setQuickAddProjectId(projectId);
@@ -464,11 +528,30 @@ const Index = () => {
         />
       )}
 
+      {isCategorySelectionModalOpen && (
+        <CategorySelectionModal
+          isOpen={isCategorySelectionModalOpen}
+          onClose={handleCategorySelectionClose}
+          onSelectProject={handleSelectProject}
+          onSelectList={handleSelectList}
+          onSelectAction={handleSelectAction}
+        />
+      )}
+
       {isProjectModalOpen && (
         <ProjectModal
           isOpen={isProjectModalOpen}
           onClose={handleCloseProjectModal}
           onCreateProject={handleCreateProject}
+          lockedArea={selectedArea || undefined}
+        />
+      )}
+
+      {isActionModalOpen && (
+        <ActionModal
+          isOpen={isActionModalOpen}
+          onClose={handleActionModalClose}
+          onCreateAction={handleCreateAction}
           lockedArea={selectedArea || undefined}
         />
       )}

@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Progress } from '@/components/ui/progress';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
+import { TaskPills } from '@/components/TaskPills';
 import { MoreVertical, Plus } from 'lucide-react';
 
 interface Project {
@@ -23,6 +24,10 @@ interface TaskItem {
   color?: string;
   startTime?: Date;
   dueDate?: Date | null;
+  duration?: number;
+  priority?: 'high' | 'medium' | 'low';
+  effortLevel?: 'small' | 'medium' | 'large';
+  description?: string;
 }
 
 interface ListItem {
@@ -192,37 +197,45 @@ export const CategoryBoard: React.FC<CategoryBoardProps> = ({
                            onChange={() => onToggleTask(task.id)}
                            className="w-4 h-4 rounded border-border"
                          />
-                         <div className="flex-1 flex items-center justify-between">
-                           <span className={`text-sm ${task.completed ? 'line-through text-muted-foreground' : ''}`}>
-                             {task.title}
-                           </span>
-                           <div className="flex items-center space-x-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                             {task.dueDate && (
-                               <span className="text-xs text-muted-foreground">{new Date(task.dueDate).toLocaleDateString()}</span>
-                             )}
-                             <Button 
-                               size="sm" 
-                               variant="ghost" 
-                               className="h-6 w-6 p-0 text-muted-foreground hover:text-foreground" 
-                               onClick={() => {
-                                 const title = window.prompt('Edit task title', task.title)?.trim();
-                                 if (title) onEditTask(task.id, { title });
-                               }}
-                             >
-                               ✏️
-                             </Button>
-                             <Button 
-                               size="sm" 
-                               variant="ghost" 
-                               className="h-6 w-6 p-0 text-muted-foreground hover:text-destructive" 
-                               onClick={() => {
-                                 if (window.confirm('Delete this task?')) onDeleteTask(task.id);
-                               }}
-                             >
-                               🗑️
-                             </Button>
-                           </div>
-                         </div>
+                          <div className="flex-1">
+                            <div className="flex items-center justify-between mb-2">
+                              <span className={`text-sm font-medium ${task.completed ? 'line-through text-muted-foreground' : ''}`}>
+                                {task.title}
+                              </span>
+                              <div className="flex items-center space-x-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                                <Button 
+                                  size="sm" 
+                                  variant="ghost" 
+                                  className="h-6 w-6 p-0 text-muted-foreground hover:text-foreground" 
+                                  onClick={() => {
+                                    const title = window.prompt('Edit task title', task.title)?.trim();
+                                    if (title) onEditTask(task.id, { title });
+                                  }}
+                                >
+                                  ✏️
+                                </Button>
+                                <Button 
+                                  size="sm" 
+                                  variant="ghost" 
+                                  className="h-6 w-6 p-0 text-muted-foreground hover:text-destructive" 
+                                  onClick={() => {
+                                    if (window.confirm('Delete this task?')) onDeleteTask(task.id);
+                                  }}
+                                >
+                                  🗑️
+                                </Button>
+                              </div>
+                            </div>
+                            <TaskPills
+                              startTime={task.startTime}
+                              dueDate={task.dueDate}
+                              duration={task.duration}
+                              priority={task.priority}
+                              effortLevel={task.effortLevel}
+                              description={task.description}
+                              className="mb-1"
+                            />
+                          </div>
                        </div>
                      ))
                   )}

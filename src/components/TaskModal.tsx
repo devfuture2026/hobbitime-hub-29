@@ -242,7 +242,7 @@ export const TaskModal: React.FC<TaskModalProps> = ({
             <div className="space-y-2">
               <Label htmlFor="duration" className="text-sm font-medium flex items-center space-x-1">
                 <Clock className="w-4 h-4" />
-                <span>Duration (hours)</span>
+                <span>Duration (Optional)</span>
               </Label>
               <Select
                 value={taskData.duration.toString()}
@@ -266,7 +266,7 @@ export const TaskModal: React.FC<TaskModalProps> = ({
             <div className="space-y-2">
               <Label htmlFor="start-time" className="text-sm font-medium flex items-center space-x-1">
                 <Clock className="w-4 h-4" />
-                <span>Start Time</span>
+                <span>Start Time (Optional)</span>
               </Label>
               <Input
                 id="start-time"
