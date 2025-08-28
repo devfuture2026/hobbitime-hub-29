@@ -295,7 +295,7 @@ export const AreaDashboard: React.FC<AreaDashboardProps> = ({
                     <div className="flex items-center space-x-2">
                       <DropdownMenu>
                         <DropdownMenuTrigger asChild>
-                          <Button size="icon" variant="ghost" className="h-7 w-7 opacity-0 group-hover:opacity-100">
+                          <Button size="icon" variant="ghost" className="h-7 w-7 opacity-0 group-hover:opacity-100 text-muted-foreground hover:text-foreground">
                             <MoreVertical className="w-4 h-4" />
                           </Button>
                         </DropdownMenuTrigger>
@@ -338,7 +338,7 @@ export const AreaDashboard: React.FC<AreaDashboardProps> = ({
             return (
               <Card
                 key={list.id}
-                className="border-border w-72 h-64 flex flex-col"
+                className="border-border group w-80 h-64 flex flex-col"
               >
                 <CardHeader className="py-3 flex-shrink-0">
                   <div className="flex items-center justify-between">
@@ -348,7 +348,7 @@ export const AreaDashboard: React.FC<AreaDashboardProps> = ({
                     {onRenameList && onDeleteList && (
                       <DropdownMenu>
                         <DropdownMenuTrigger asChild>
-                          <Button size="icon" variant="ghost" className="h-7 w-7 opacity-0 group-hover:opacity-100">
+                          <Button size="icon" variant="ghost" className="h-7 w-7 opacity-0 group-hover:opacity-100 text-muted-foreground hover:text-foreground">
                             <MoreVertical className="w-4 h-4" />
                           </Button>
                         </DropdownMenuTrigger>
@@ -374,7 +374,7 @@ export const AreaDashboard: React.FC<AreaDashboardProps> = ({
                         <p className="text-muted-foreground text-sm">No tasks yet — add one below.</p>
                        ) : (
                         listTasks.map(task => (
-                          <div key={task.id} className="p-3 rounded-md bg-accent/5 hover:bg-accent/10 transition-colors">
+                          <div key={task.id} className="group p-3 rounded-md bg-accent/5 hover:bg-accent/10 transition-colors">
                             <div className="flex items-center justify-between mb-2">
                               <div className="flex items-center space-x-2">
                                 <input
@@ -391,11 +391,11 @@ export const AreaDashboard: React.FC<AreaDashboardProps> = ({
                                   {task.title}
                                 </span>
                               </div>
-                              <div className="flex items-center space-x-1">
+                              <div className="flex items-center space-x-1 opacity-0 group-hover:opacity-100 transition-opacity">
                                 <Button
                                   size="sm"
                                   variant="ghost"
-                                  className="h-6 w-6 p-0 text-xs hover:bg-accent/20"
+                                  className="h-6 w-6 p-0 text-muted-foreground hover:text-foreground"
                                   onClick={(e) => {
                                     e.stopPropagation();
                                     const title = window.prompt('Edit task', task.title)?.trim();
@@ -409,7 +409,7 @@ export const AreaDashboard: React.FC<AreaDashboardProps> = ({
                                 <Button
                                   size="sm"
                                   variant="ghost"
-                                  className="h-6 w-6 p-0 text-xs hover:bg-accent/20"
+                                  className="h-6 w-6 p-0 text-muted-foreground hover:text-foreground"
                                   onClick={(e) => {
                                     e.stopPropagation();
                                     if (window.confirm('Delete this task?') && onDeleteTask) {

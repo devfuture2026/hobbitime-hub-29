@@ -43,7 +43,7 @@ export const ActionCard: React.FC<ActionCardProps> = ({
   };
 
   return (
-    <Card className="w-64 h-64 border-border group cursor-pointer bg-gradient-card">
+    <Card className="w-80 h-64 border-border group cursor-pointer bg-gradient-card">
       <CardHeader className="pb-2">
         <div className="flex items-center justify-between">
           <div className="flex items-center space-x-2">
@@ -71,7 +71,7 @@ export const ActionCard: React.FC<ActionCardProps> = ({
             )}
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <Button size="icon" variant="ghost" className="h-7 w-7 opacity-0 group-hover:opacity-100">
+                <Button size="icon" variant="ghost" className="h-7 w-7 opacity-0 group-hover:opacity-100 text-muted-foreground hover:text-foreground">
                   <MoreVertical className="w-4 h-4" />
                 </Button>
               </DropdownMenuTrigger>
