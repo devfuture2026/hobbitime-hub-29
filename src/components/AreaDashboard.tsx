@@ -7,6 +7,7 @@ import { ArrowLeft, MoreVertical, Code, Heart, Home, GraduationCap, Users, Gamep
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { ActionCard } from '@/components/ActionCard';
 import { TaskModal } from '@/components/TaskModal';
+import { TaskPills } from '@/components/TaskPills';
 
 interface Task {
   id: string;
@@ -18,6 +19,9 @@ interface Task {
   priority: 'high' | 'medium' | 'low';
   completed: boolean;
   listId?: string; // Added for lists
+  dueDate?: Date | null;
+  effortLevel?: 'small' | 'medium' | 'large';
+  description?: string;
 }
 
 interface Project {
@@ -338,16 +342,8 @@ export const AreaDashboard: React.FC<AreaDashboardProps> = ({
               >
                 <CardHeader className="py-3 flex-shrink-0">
                   <div className="flex items-center justify-between">
-                    <div className="flex items-center space-x-2">
-                      <div className="p-2 bg-accent/10 rounded-lg">
-                        <List className="w-4 h-4 text-accent" />
-                      </div>
-                      <div>
-                        <CardTitle className="text-base">{list.title}</CardTitle>
-                        <p className="text-xs text-muted-foreground mt-1">
-                          List
-                        </p>
-                      </div>
+                    <div>
+                      <CardTitle className="text-base">{list.title}</CardTitle>
                     </div>
                     {onRenameList && onDeleteList && (
                       <DropdownMenu>
@@ -374,27 +370,38 @@ export const AreaDashboard: React.FC<AreaDashboardProps> = ({
                 >
                   <div className="space-y-2 min-h-[60px] flex-1 flex flex-col">
                     <div className="flex-1 overflow-y-auto space-y-2">
-                      {listTasks.length === 0 ? (
+                       {listTasks.length === 0 ? (
                         <p className="text-muted-foreground text-sm">No tasks yet — add one below.</p>
                        ) : (
                         listTasks.map(task => (
-                          <div
-                            key={task.id}
-                            className="flex items-center space-x-2 p-2 rounded-md bg-accent/5 hover:bg-accent/10 transition-colors"
-                          >
-                            <input
-                              type="checkbox"
-                              checked={task.completed}
-                              onChange={() => {
-                                if (onToggleTask) {
-                                  onToggleTask(task.id);
-                                }
-                              }}
-                              className="rounded border-border"
+                          <div key={task.id} className="p-3 rounded-md bg-accent/5 hover:bg-accent/10 transition-colors">
+                            <div className="flex items-center justify-between mb-2">
+                              <div className="flex items-center space-x-2">
+                                <input
+                                  type="checkbox"
+                                  checked={task.completed}
+                                  onChange={() => {
+                                    if (onToggleTask) {
+                                      onToggleTask(task.id);
+                                    }
+                                  }}
+                                  className="rounded border-border"
+                                />
+                                <span className={`text-sm font-medium ${task.completed ? 'line-through text-muted-foreground' : ''}`}>
+                                  {task.title}
+                                </span>
+                              </div>
+                            </div>
+                            
+                            <TaskPills
+                              startTime={task.startTime}
+                              dueDate={task.dueDate}
+                              duration={task.duration}
+                              priority={task.priority}
+                              effortLevel={task.effortLevel}
+                              description={task.description}
+                              className="mb-2"
                             />
-                            <span className={`text-sm ${task.completed ? 'line-through text-muted-foreground' : ''}`}>
-                              {task.title}
-                            </span>
                           </div>
                         ))
                       )}
