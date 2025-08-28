@@ -43,7 +43,7 @@ export const ActionCard: React.FC<ActionCardProps> = ({
   };
 
   return (
-    <Card className="w-80 h-64 border-border group cursor-pointer bg-gradient-card">
+    <Card className="w-80 h-100 border-border group cursor-pointer bg-gradient-card">
       <CardHeader className="pb-2">
         <div className="flex items-center justify-between">
           <div className="flex items-center space-x-2">

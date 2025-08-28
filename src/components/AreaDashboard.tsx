@@ -109,6 +109,10 @@ export const AreaDashboard: React.FC<AreaDashboardProps> = ({
   const [selectedTime, setSelectedTime] = useState<Date | null>(null);
   const [quickAddListId, setQuickAddListId] = useState<string>('');
   const [prefilledTaskTitle, setPrefilledTaskTitle] = useState<string>('');
+  
+  // State for project navigation
+  const [currentProjectId, setCurrentProjectId] = useState<string | null>(null);
+  const [breadcrumbPath, setBreadcrumbPath] = useState<Project[]>([]);
 
   // Handler for opening TaskModal from list input
   const handleOpenTaskModal = useCallback((listId: string, title: string) => {
@@ -138,9 +142,40 @@ export const AreaDashboard: React.FC<AreaDashboardProps> = ({
     }
   }, [onCreateTask]);
 
-  // Filter projects that belong to this area and have no parent (top-level projects)
-  const areaProjects = useMemo(() => projects.filter(p => p.area === areaName && !p.parentId), [projects, areaName]);
-  const areaProjectIds = useMemo(() => new Set(areaProjects.map(p => p.id)), [areaProjects]);
+  // Navigation handlers
+  const handleProjectClick = useCallback((projectId: string) => {
+    const project = projects.find(p => p.id === projectId);
+    if (project) {
+      setCurrentProjectId(projectId);
+      setBreadcrumbPath(prev => [...prev, project]);
+    }
+  }, [projects]);
+
+  const handleBackToParent = useCallback(() => {
+    if (breadcrumbPath.length > 0) {
+      const newPath = breadcrumbPath.slice(0, -1);
+      setBreadcrumbPath(newPath);
+      setCurrentProjectId(newPath.length > 0 ? newPath[newPath.length - 1].id : null);
+    }
+  }, [breadcrumbPath]);
+
+  const handleBackToArea = useCallback(() => {
+    setCurrentProjectId(null);
+    setBreadcrumbPath([]);
+  }, []);
+
+  // Filter projects based on current context
+  const currentProjects = useMemo(() => {
+    if (currentProjectId) {
+      // Show child projects of the current project
+      return projects.filter(p => p.parentId === currentProjectId);
+    } else {
+      // Show top-level projects in the area
+      return projects.filter(p => p.area === areaName && !p.parentId);
+    }
+  }, [projects, areaName, currentProjectId]);
+
+  const areaProjectIds = useMemo(() => new Set(currentProjects.map(p => p.id)), [currentProjects]);
   
   // Filter lists that belong to this area (using area-specific project IDs)
   const areaLists = useMemo(() => {
@@ -162,9 +197,9 @@ export const AreaDashboard: React.FC<AreaDashboardProps> = ({
       index === self.findIndex(t => t.id === task.id)
     );
     
-    console.log('AreaDashboard - All tasks:', tasks); // Debug log
-    console.log('AreaDashboard - Area projects:', areaProjects); // Debug log
-    console.log('AreaDashboard - Area lists:', areaLists); // Debug log
+         console.log('AreaDashboard - All tasks:', tasks); // Debug log
+     console.log('AreaDashboard - Area projects:', currentProjects); // Debug log
+     console.log('AreaDashboard - Area lists:', areaLists); // Debug log
     console.log('AreaDashboard - Project tasks:', projectTasks); // Debug log
     console.log('AreaDashboard - List tasks:', listTasks); // Debug log
     console.log('AreaDashboard - Final area tasks:', uniqueTasks); // Debug log
@@ -240,10 +275,43 @@ export const AreaDashboard: React.FC<AreaDashboardProps> = ({
                 </span>
               );
             })()}
-            <div>
-              <h1 className="text-2xl font-bold text-foreground">{areaName}</h1>
-              <p className="text-muted-foreground text-sm">{getAreaDescription(areaName)}</p>
-            </div>
+                         <div>
+               <h1 className="text-2xl font-bold text-foreground">
+                 {currentProjectId ? 
+                   projects.find(p => p.id === currentProjectId)?.name || areaName : 
+                   areaName
+                 }
+               </h1>
+               <p className="text-muted-foreground text-sm">
+                 {currentProjectId ? 
+                   `This is your ${projects.find(p => p.id === currentProjectId)?.name} project.` :
+                   getAreaDescription(areaName)
+                 }
+               </p>
+               {/* Breadcrumb navigation */}
+               {breadcrumbPath.length > 0 && (
+                 <div className="flex items-center space-x-2 mt-1">
+                   <span className="text-xs text-muted-foreground">Path:</span>
+                   {breadcrumbPath.map((project, index) => (
+                     <React.Fragment key={project.id}>
+                       <button
+                         onClick={() => {
+                           const newPath = breadcrumbPath.slice(0, index + 1);
+                           setBreadcrumbPath(newPath);
+                           setCurrentProjectId(project.id);
+                         }}
+                         className="text-xs text-primary hover:underline"
+                       >
+                         {project.name}
+                       </button>
+                       {index < breadcrumbPath.length - 1 && (
+                         <span className="text-xs text-muted-foreground">/</span>
+                       )}
+                     </React.Fragment>
+                   ))}
+                 </div>
+               )}
+             </div>
           </div>
         </div>
         <div className="flex items-center space-x-4">
@@ -251,32 +319,57 @@ export const AreaDashboard: React.FC<AreaDashboardProps> = ({
             <div className="text-sm text-muted-foreground mb-1">Progress</div>
             <Progress value={progress} />
           </div>
-          <Button onClick={() => onAddCategory(areaName)} className="bg-gradient-primary text-white">
-            <Plus className="w-4 h-4 mr-2" />
-            Category
-          </Button>
+                     <Button onClick={() => {
+             if (currentProjectId) {
+               // Create a sub-project within the current project
+               const projectName = window.prompt('Enter sub-project name:')?.trim();
+               if (projectName) {
+                 // Create a new project with the current project as parent
+                 const newProject = {
+                   id: Date.now().toString(),
+                   name: projectName,
+                   color: '#3B82F6', // Default blue color
+                   category: 'personal' as const,
+                   area: areaName,
+                   parentId: currentProjectId
+                 };
+                 // Add to projects array (this would need to be handled by the parent component)
+                 console.log('Creating sub-project:', newProject);
+                 // For now, we'll use the existing onAddCategory but we need to modify it
+                 // to handle sub-projects. This is a temporary solution.
+                 onAddCategory(areaName); // This needs to be updated to handle sub-projects
+               }
+             } else {
+               onAddCategory(areaName);
+             }
+           }} className="bg-gradient-primary text-white">
+             <Plus className="w-4 h-4 mr-2" />
+             {currentProjectId ? 'Sub-Category' : 'Category'}
+           </Button>
         </div>
       </div>
 
       {/* Unified Container for Projects, Lists, and Actions */}
       <div className="mb-8">
-        <h2 className="text-lg font-semibold mb-4">Categories</h2>
+                 <h2 className="text-lg font-semibold mb-4">
+           {currentProjectId ? 'Sub-Categories' : 'Categories'}
+         </h2>
         <div className="flex flex-wrap gap-4">
-          {/* Projects */}
-          {areaProjects.map(project => {
+                     {/* Projects */}
+           {currentProjects.map(project => {
             const projectTasks = areaTasks.filter(t => t.projectId === project.id);
             const done = projectTasks.filter(t => t.completed).length;
             const pct = projectTasks.length > 0 ? (done / projectTasks.length) * 100 : 0;
             return (
-              <Card
-                key={project.id}
-                className="border-border group cursor-pointer w-80 h-64 flex flex-col"
-                draggable
-                onDragStart={(e) => { draggedIdRef.current = project.id; e.dataTransfer.effectAllowed = 'move'; }}
-                onDragOver={(e) => { e.preventDefault(); e.dataTransfer.dropEffect = 'move'; }}
-                onDrop={() => { if (draggedIdRef.current && draggedIdRef.current !== project.id) onReorderCategories(areaName, draggedIdRef.current, project.id); draggedIdRef.current = null; }}
-                onClick={() => onCategorySelect(project.id)}
-              >
+                             <Card
+                 key={project.id}
+                 className="border-border group cursor-pointer w-80 h-32 flex flex-col"
+                 draggable
+                 onDragStart={(e) => { draggedIdRef.current = project.id; e.dataTransfer.effectAllowed = 'move'; }}
+                 onDragOver={(e) => { e.preventDefault(); e.dataTransfer.dropEffect = 'move'; }}
+                 onDrop={() => { if (draggedIdRef.current && draggedIdRef.current !== project.id) onReorderCategories(areaName, draggedIdRef.current, project.id); draggedIdRef.current = null; }}
+                 onClick={() => handleProjectClick(project.id)}
+               >
                 <CardHeader className="pb-2 flex-shrink-0">
                   <div className="flex items-center justify-between">
                     <div className="flex items-center space-x-2">
@@ -336,10 +429,10 @@ export const AreaDashboard: React.FC<AreaDashboardProps> = ({
             const pct = listTasks.length > 0 ? (done / listTasks.length) * 100 : 0;
             
             return (
-              <Card
-                key={list.id}
-                className="border-border group w-80 h-64 flex flex-col"
-              >
+                             <Card
+                 key={list.id}
+                 className="border-border group w-80 h-32 flex flex-col"
+               >
                 <CardHeader className="py-3 flex-shrink-0">
                   <div className="flex items-center justify-between">
                     <div>
@@ -445,7 +538,9 @@ export const AreaDashboard: React.FC<AreaDashboardProps> = ({
                             const input = e.target as HTMLInputElement;
                             const title = input.value.trim();
                             if (title) {
-                              handleOpenTaskModal(list.id, title);
+                              if (onAddTask) {
+                                onAddTask(list.id, title);
+                              }
                               input.value = '';
                             }
                           }
@@ -469,8 +564,8 @@ export const AreaDashboard: React.FC<AreaDashboardProps> = ({
             />
           ))}
 
-          {/* Empty state if no categories */}
-          {areaProjects.length === 0 && areaLists.length === 0 && areaActions.length === 0 && (
+                     {/* Empty state if no categories */}
+           {currentProjects.length === 0 && areaLists.length === 0 && areaActions.length === 0 && (
             <div className="w-full text-center py-8">
               <p className="text-muted-foreground">No categories yet — add one above.</p>
             </div>

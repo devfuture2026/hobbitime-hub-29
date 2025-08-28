@@ -563,19 +563,11 @@ const Index = () => {
                 onRenameList={(listId, newTitle) => setLists(prev => prev.map(l => l.id === listId ? { ...l, title: newTitle } : l))}
                 onDeleteList={(listId) => setLists(prev => prev.filter(l => l.id !== listId))}
                 onAddTask={(listId, title) => {
-                  // Create a new task for the list
-                  const newTask = {
-                    id: Date.now().toString(),
-                    title,
-                    projectId: '', // This will be set when the task is moved to a project
-                    listId,
-                    startTime: new Date(),
-                    duration: 30,
-                    color: '#3B82F6',
-                    priority: 'medium' as 'high' | 'medium' | 'low',
-                    completed: false
-                  };
-                  setTasks(prev => [...prev, newTask]);
+                  // Instead of directly creating a task, open the TaskModal with prefilled title
+                  setSelectedTime(new Date());
+                  setIsTaskModalOpen(true);
+                  // Store the title and listId for when the modal opens
+                  setQuickAddTaskData({ title, listId });
                 }}
                 onToggleTask={(taskId) => setTasks(prev => prev.map(t => t.id === taskId ? { ...t, completed: !t.completed } : t))}
                 onEditTask={(taskId, changes) => setTasks(prev => prev.map(t => t.id === taskId ? { ...t, ...changes } : t))}
