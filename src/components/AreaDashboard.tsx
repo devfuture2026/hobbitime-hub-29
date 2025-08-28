@@ -391,6 +391,35 @@ export const AreaDashboard: React.FC<AreaDashboardProps> = ({
                                   {task.title}
                                 </span>
                               </div>
+                              <div className="flex items-center space-x-1">
+                                <Button
+                                  size="sm"
+                                  variant="ghost"
+                                  className="h-6 w-6 p-0 text-xs hover:bg-accent/20"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    const title = window.prompt('Edit task', task.title)?.trim();
+                                    if (title && onEditTask) {
+                                      onEditTask(task.id, { title });
+                                    }
+                                  }}
+                                >
+                                  ✏️
+                                </Button>
+                                <Button
+                                  size="sm"
+                                  variant="ghost"
+                                  className="h-6 w-6 p-0 text-xs hover:bg-accent/20"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    if (window.confirm('Delete this task?') && onDeleteTask) {
+                                      onDeleteTask(task.id);
+                                    }
+                                  }}
+                                >
+                                  🗑️
+                                </Button>
+                              </div>
                             </div>
                             
                             <TaskPills
