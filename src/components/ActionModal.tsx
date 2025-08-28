@@ -17,13 +17,15 @@ interface ActionModalProps {
   onClose: () => void;
   onCreateAction: (action: any) => void;
   lockedArea?: string;
+  lockedProjectId?: string;
 }
 
 export const ActionModal: React.FC<ActionModalProps> = ({
   isOpen,
   onClose,
   onCreateAction,
-  lockedArea
+  lockedArea,
+  lockedProjectId
 }) => {
   const [actionData, setActionData] = useState({
     title: '',
@@ -78,6 +80,7 @@ export const ActionModal: React.FC<ActionModalProps> = ({
       description: actionData.description,
       type: actionData.type,
       area: actionData.area,
+      projectId: lockedProjectId,
       ...(actionData.type === 'alarm' ? {
         time: actionData.time,
         enabled: actionData.enabled,

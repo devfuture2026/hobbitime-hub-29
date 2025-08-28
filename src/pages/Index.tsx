@@ -4,6 +4,7 @@ import { TodayOverview } from '@/components/TodayOverview';
 import { AreasDashboard } from '@/components/AreasDashboard';
 import { AreaDashboard } from '@/components/AreaDashboard';
 import { CategoryBoard } from '@/components/CategoryBoard';
+import { ProjectDetail } from '@/components/ProjectDetail';
 import { AlarmPanel } from '@/components/AlarmPanel';
 import { TaskModal } from '@/components/TaskModal';
 import { ProjectModal } from '@/components/ProjectModal';
@@ -14,7 +15,7 @@ import { Header } from '@/components/Header';
 import { SettingsModal } from '@/components/SettingsModal';
 import { addDays, startOfToday } from 'date-fns';
 
-type ViewMode = 'calendar' | 'areas' | 'area-detail' | 'category-detail';
+type ViewMode = 'calendar' | 'areas' | 'area-detail' | 'category-detail' | 'project-detail';
 
 type Task = {
   id: string;
@@ -41,6 +42,7 @@ type Action = {
   description?: string;
   type: 'alarm' | 'reminder';
   area: string;
+  projectId?: string; // Associate actions with specific projects
   // Alarm specific
   time?: string;
   enabled?: boolean;
@@ -58,6 +60,7 @@ type Project = {
   category: 'hobby' | 'work' | 'personal';
   area: string;
   dueDate?: Date | null;
+  parentId?: string; // For nesting projects within projects
 };
 
 const Index = () => {
@@ -75,10 +78,18 @@ const Index = () => {
   const [viewMode, setViewMode] = useState<ViewMode>('calendar');
   const [selectedArea, setSelectedArea] = useState<string | null>(null);
   const [selectedCategoryId, setSelectedCategoryId] = useState<string | null>(null);
-  const [lists, setLists] = useState<Array<{ id: string; title: string; projectId: string }>>([]);
+  const [selectedProjectDetailId, setSelectedProjectDetailId] = useState<string | null>(null);
+  const [lists, setLists] = useState<Array<{ id: string; title: string; projectId: string }>>([
+    {
+      id: 'list-1',
+      title: 'New List',
+      projectId: 'area-development'
+    }
+  ]);
   const [actions, setActions] = useState<Action[]>([]);
   const [categoryFilter, setCategoryFilter] = useState<'all' | 'active' | 'completed' | 'overdue'>('all');
   const [quickAddTaskData, setQuickAddTaskData] = useState<{ title: string; listId: string } | null>(null);
+  const [categorySelectionContext, setCategorySelectionContext] = useState<{ type: 'area' | 'project'; name: string; id?: string } | null>(null);
   const draggedTaskIdRef = useRef<string | null>(null);
   const [darkMode, setDarkMode] = useState(() => {
     // Check localStorage first, then system preference
@@ -201,13 +212,44 @@ const Index = () => {
   }, []);
 
   const handleCreateTask = useCallback((task: any) => {
-    setTasks(prevTasks => [...prevTasks, task]);
-    // Update project task counts
-    setProjects(prevProjects => prevProjects.map(project => 
-      project.id === task.projectId 
-        ? { ...project, tasksCount: project.tasksCount + 1 }
-        : project
-    ));
+    console.log('Creating task:', task); // Debug log
+    
+    // Ensure the task has all required fields
+    const newTask = {
+      id: Date.now().toString(),
+      title: task.title || 'Untitled Task',
+      projectId: task.projectId || '',
+      startTime: task.startTime || new Date(),
+      duration: task.duration || 30,
+      color: task.color || '#3B82F6',
+      priority: task.priority || 'medium',
+      completed: false,
+      listId: task.listId,
+      dueDate: task.dueDate || null,
+      area: task.area || '',
+      category: task.category || '',
+      effortLevel: task.effortLevel || 'medium',
+      isRecurring: task.isRecurring || false,
+      recurringPattern: task.recurringPattern,
+      description: task.description || ''
+    };
+
+    console.log('New task object:', newTask); // Debug log
+
+    setTasks(prevTasks => {
+      const updatedTasks = [...prevTasks, newTask];
+      console.log('Updated tasks array:', updatedTasks); // Debug log
+      return updatedTasks;
+    });
+    
+    // Update project task counts only if the task has a projectId
+    if (task.projectId) {
+      setProjects(prevProjects => prevProjects.map(project => 
+        project.id === task.projectId 
+          ? { ...project, tasksCount: project.tasksCount + 1 }
+          : project
+      ));
+    }
   }, []);
 
   const handleTaskUpdate = useCallback((updatedTasks: any[]) => {
@@ -238,44 +280,66 @@ const Index = () => {
       id: Date.now().toString(),
       ...projectData,
       tasksCount: 0,
-      completedTasks: 0
+      completedTasks: 0,
+      parentId: categorySelectionContext?.type === 'project' ? categorySelectionContext.id : undefined
     };
     setProjects(prevProjects => [...prevProjects, newProject]);
-  }, []);
+  }, [categorySelectionContext]);
 
   // Fix: Create handler to open category selection modal
-  const handleOpenCategorySelection = useCallback(() => {
+  const handleOpenCategorySelection = useCallback((context?: { type: 'area' | 'project'; name: string; id?: string }) => {
     setIsCategorySelectionModalOpen(true);
+    // Store context for the modal
+    if (context) {
+      // We'll need to store this context in state
+      setCategorySelectionContext(context);
+    }
   }, []);
 
   const handleCategorySelectionClose = useCallback(() => {
     setIsCategorySelectionModalOpen(false);
+    setCategorySelectionContext(null);
   }, []);
 
   const handleSelectProject = useCallback(() => {
     setIsCategorySelectionModalOpen(false);
     setIsProjectModalOpen(true);
+    // The ProjectModal will use the context to set the locked area and parent project
   }, []);
 
   const handleSelectList = useCallback(() => {
-    // Create a new list for the currently selected project
-    if (selectedCategoryId) {
+    // Create a new list for the current context
+    const context = categorySelectionContext;
+    if (context?.type === 'project' && context.id) {
       const listTitle = window.prompt('Enter list title:', 'New List')?.trim();
       if (listTitle) {
         setLists(prev => [...prev, { 
           id: Date.now().toString(), 
           title: listTitle, 
-          projectId: selectedCategoryId 
+          projectId: context.id 
+        }]);
+      }
+    } else if (context?.type === 'area') {
+      // For area context, create a list directly in the area (no project needed)
+      const listTitle = window.prompt('Enter list title:', 'New List')?.trim();
+      if (listTitle) {
+        // Create a temporary project ID for the area to associate lists with
+        const areaProjectId = `area-${context.name.toLowerCase()}`;
+        setLists(prev => [...prev, { 
+          id: Date.now().toString(), 
+          title: listTitle, 
+          projectId: areaProjectId 
         }]);
       }
     }
     setIsCategorySelectionModalOpen(false);
-  }, [selectedCategoryId]);
+    setCategorySelectionContext(null);
+  }, [categorySelectionContext]);
 
   const handleSelectAction = useCallback(() => {
     setIsCategorySelectionModalOpen(false);
     setIsActionModalOpen(true);
-    // The ActionModal will use the selected project's area as the locked area
+    // The ActionModal will use the context to set the locked area
   }, []);
 
   const handleCreateAction = useCallback((actionData: Action) => {
@@ -284,6 +348,7 @@ const Index = () => {
 
   const handleActionModalClose = useCallback(() => {
     setIsActionModalOpen(false);
+    setCategorySelectionContext(null);
   }, []);
 
   const handleProjectSelect = useCallback((projectId: string) => {
@@ -315,6 +380,16 @@ const Index = () => {
   const handleBackToArea = useCallback(() => {
     setSelectedCategoryId(null);
     setViewMode('area-detail');
+  }, []);
+
+  const handleProjectDetailSelect = useCallback((projectId: string) => {
+    setSelectedProjectDetailId(projectId);
+    setViewMode('project-detail');
+  }, []);
+
+  const handleBackToProject = useCallback(() => {
+    setSelectedProjectDetailId(null);
+    setViewMode('category-detail');
   }, []);
 
   const handleReorderTasks = useCallback((projectId: string, sourceId: string, targetId: string) => {
@@ -358,6 +433,7 @@ const Index = () => {
 
   const handleCloseProjectModal = useCallback(() => {
     setIsProjectModalOpen(false);
+    setCategorySelectionContext(null);
   }, []);
 
   const handleCloseProjectTasksModal = useCallback(() => {
@@ -387,9 +463,10 @@ const Index = () => {
   // View mode change handler
   const handleViewModeChange = useCallback((mode: ViewMode) => {
     setViewMode(mode);
-    if (mode !== 'area-detail' && mode !== 'category-detail') {
+    if (mode !== 'area-detail' && mode !== 'category-detail' && mode !== 'project-detail') {
       setSelectedArea(null);
       setSelectedCategoryId(null);
+      setSelectedProjectDetailId(null);
     }
   }, []);
 
@@ -445,8 +522,10 @@ const Index = () => {
                 areaName={selectedArea}
                 tasks={tasks}
                 projects={projects}
+                actions={actions}
+                lists={lists}
                 onBack={handleBackToAreas}
-                onAddCategory={handleOpenCategorySelection}
+                onAddCategory={(areaName) => handleOpenCategorySelection({ type: 'area', name: areaName })}
                 onCategorySelect={handleCategorySelect}
                 onQuickAddTask={(projectId) => {
                   setQuickAddProjectId(projectId);
@@ -471,13 +550,46 @@ const Index = () => {
                   setProjects(prev => prev.filter(p => p.id !== projectId));
                   setTasks(prev => prev.filter(t => t.projectId !== projectId));
                 }}
+                onToggleActionEnabled={(actionId, enabled) => {
+                  setActions(prev => prev.map(a => a.id === actionId ? { ...a, enabled } : a));
+                }}
+                onEditAction={(actionId) => {
+                  // For now, just log - could implement edit functionality later
+                  console.log('Edit action:', actionId);
+                }}
+                onDeleteAction={(actionId) => {
+                  setActions(prev => prev.filter(a => a.id !== actionId));
+                }}
+                onRenameList={(listId, newTitle) => setLists(prev => prev.map(l => l.id === listId ? { ...l, title: newTitle } : l))}
+                onDeleteList={(listId) => setLists(prev => prev.filter(l => l.id !== listId))}
+                onAddTask={(listId, title) => {
+                  // Create a new task for the list
+                  const newTask = {
+                    id: Date.now().toString(),
+                    title,
+                    projectId: '', // This will be set when the task is moved to a project
+                    listId,
+                    startTime: new Date(),
+                    duration: 30,
+                    color: '#3B82F6',
+                    priority: 'medium' as 'high' | 'medium' | 'low',
+                    completed: false
+                  };
+                  setTasks(prev => [...prev, newTask]);
+                }}
+                onToggleTask={(taskId) => setTasks(prev => prev.map(t => t.id === taskId ? { ...t, completed: !t.completed } : t))}
+                onEditTask={(taskId, changes) => setTasks(prev => prev.map(t => t.id === taskId ? { ...t, ...changes } : t))}
+                onDeleteTask={(taskId) => setTasks(prev => prev.filter(t => t.id !== taskId))}
+                onCreateTask={handleCreateTask}
+
               />
             )
-          ) : (
+          ) : viewMode === 'category-detail' ? (
             selectedCategoryId && (
               <CategoryBoard
                 project={projects.find(p => p.id === selectedCategoryId)!}
                 tasks={tasks}
+                projects={projects}
                 lists={lists}
                 actions={actions}
                 onBack={handleBackToArea}
@@ -524,7 +636,12 @@ const Index = () => {
                     return [...others, ...list];
                   });
                 }}
-                onOpenCategorySelection={handleOpenCategorySelection}
+                onOpenCategorySelection={() => {
+                  const project = projects.find(p => p.id === selectedCategoryId);
+                  if (project) {
+                    handleOpenCategorySelection({ type: 'project', name: project.name, id: project.id });
+                  }
+                }}
                 onToggleActionEnabled={(actionId, enabled) => {
                   setActions(prev => prev.map(a => a.id === actionId ? { ...a, enabled } : a));
                 }}
@@ -535,9 +652,53 @@ const Index = () => {
                 onDeleteAction={(actionId) => {
                   setActions(prev => prev.filter(a => a.id !== actionId));
                 }}
+                onProjectSelect={handleProjectDetailSelect}
               />
             )
-          )}
+          ) : viewMode === 'project-detail' ? (
+            selectedProjectDetailId && (
+              <ProjectDetail
+                project={projects.find(p => p.id === selectedProjectDetailId)!}
+                tasks={tasks}
+                projects={projects}
+                lists={lists}
+                actions={actions}
+                onBack={handleBackToProject}
+                onAddCategory={() => {
+                  const project = projects.find(p => p.id === selectedProjectDetailId);
+                  if (project) {
+                    handleOpenCategorySelection({ type: 'project', name: project.name, id: project.id });
+                  }
+                }}
+                onProjectSelect={handleProjectDetailSelect}
+                onListSelect={(listId) => {
+                  // For now, just log - could implement list detail view later
+                  console.log('List selected:', listId);
+                }}
+                onActionToggle={(actionId, enabled) => {
+                  setActions(prev => prev.map(a => a.id === actionId ? { ...a, enabled } : a));
+                }}
+                onActionEdit={(actionId) => {
+                  console.log('Edit action:', actionId);
+                }}
+                onActionDelete={(actionId) => {
+                  setActions(prev => prev.filter(a => a.id !== actionId));
+                }}
+                onProjectRename={(projectId, newName) => {
+                  setProjects(prev => prev.map(p => p.id === projectId ? { ...p, name: newName } : p));
+                }}
+                onProjectDelete={(projectId) => {
+                  setProjects(prev => prev.filter(p => p.id !== projectId));
+                  setTasks(prev => prev.filter(t => t.projectId !== projectId));
+                }}
+                onListRename={(listId, newTitle) => setLists(prev => prev.map(l => l.id === listId ? { ...l, title: newTitle } : l))}
+                onListDelete={(listId) => {
+                  setLists(prev => prev.filter(l => l.id !== listId));
+                  setTasks(prev => prev.map(t => t.listId === listId ? { ...t, listId: undefined } : t));
+                }}
+              />
+            )
+          ) : null}
 
           {/* Alarm Panel (Always visible in calendar mode) */}
           {viewMode === 'calendar' && (
@@ -573,6 +734,7 @@ const Index = () => {
           onSelectProject={handleSelectProject}
           onSelectList={handleSelectList}
           onSelectAction={handleSelectAction}
+          context={categorySelectionContext}
         />
       )}
 
@@ -581,18 +743,23 @@ const Index = () => {
           isOpen={isProjectModalOpen}
           onClose={handleCloseProjectModal}
           onCreateProject={handleCreateProject}
-          lockedArea={selectedArea || undefined}
+          lockedArea={categorySelectionContext?.type === 'area' ? categorySelectionContext.name : selectedArea || undefined}
         />
       )}
 
-      {isActionModalOpen && (
-        <ActionModal
-          isOpen={isActionModalOpen}
-          onClose={handleActionModalClose}
-          onCreateAction={handleCreateAction}
-          lockedArea={selectedCategoryId ? projects.find(p => p.id === selectedCategoryId)?.area : selectedArea || undefined}
-        />
-      )}
+             {isActionModalOpen && (
+         <ActionModal
+           isOpen={isActionModalOpen}
+           onClose={handleActionModalClose}
+           onCreateAction={handleCreateAction}
+           lockedArea={categorySelectionContext?.type === 'area' ? categorySelectionContext.name : 
+                      categorySelectionContext?.type === 'project' ? projects.find(p => p.id === categorySelectionContext.id)?.area :
+                      selectedCategoryId ? projects.find(p => p.id === selectedCategoryId)?.area : 
+                      selectedArea || undefined}
+           lockedProjectId={categorySelectionContext?.type === 'project' ? categorySelectionContext.id : 
+                           selectedCategoryId || undefined}
+         />
+       )}
 
       {isProjectTasksModalOpen && selectedProjectId && (
         <ProjectTasksModal

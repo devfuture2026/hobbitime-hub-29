@@ -10,6 +10,11 @@ interface CategorySelectionModalProps {
   onSelectProject: () => void;
   onSelectList: () => void;
   onSelectAction: () => void;
+  context?: {
+    type: 'area' | 'project';
+    name: string;
+    id?: string;
+  };
 }
 
 export const CategorySelectionModal: React.FC<CategorySelectionModalProps> = ({
@@ -17,15 +22,21 @@ export const CategorySelectionModal: React.FC<CategorySelectionModalProps> = ({
   onClose,
   onSelectProject,
   onSelectList,
-  onSelectAction
+  onSelectAction,
+  context
 }) => {
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="sm:max-w-[500px] bg-gradient-card border-primary/20">
         <DialogHeader>
-          <DialogTitle className="text-xl">Add New Category</DialogTitle>
+          <DialogTitle className="text-xl">
+            {context ? `Add New Category to ${context.name}` : 'Add New Category'}
+          </DialogTitle>
           <p className="text-sm text-muted-foreground">
-            Choose what type of category you'd like to create
+            {context 
+              ? `Choose what type of category you'd like to create in ${context.type === 'area' ? 'area' : 'project'} "${context.name}"`
+              : 'Choose what type of category you\'d like to create'
+            }
           </p>
         </DialogHeader>
 

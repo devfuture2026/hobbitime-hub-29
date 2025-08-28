@@ -101,7 +101,10 @@ export const TaskModal: React.FC<TaskModalProps> = ({
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!taskData.title || !taskData.projectId) return;
+    if (!taskData.title) return;
+
+    // If creating from a list, projectId is optional
+    if (!listId && !taskData.projectId) return;
 
     const selectedProject = projects.find(p => p.id === taskData.projectId);
     
@@ -117,9 +120,9 @@ export const TaskModal: React.FC<TaskModalProps> = ({
       id: Date.now().toString(),
       title: taskData.title,
       description: taskData.description,
-      projectId: taskData.projectId,
-      area: selectedProject?.area,
-      category: selectedProject?.name,
+      projectId: taskData.projectId || undefined, // Use undefined instead of empty string
+      area: selectedProject?.area || '',
+      category: selectedProject?.name || '',
       startTime: finalStartTime,
       duration: taskData.duration,
       priority: taskData.priority,
@@ -132,6 +135,7 @@ export const TaskModal: React.FC<TaskModalProps> = ({
       listId: listId
     };
 
+    console.log('TaskModal - Creating task:', task); // Debug log
     onCreateTask(task);
     onClose();
     setTaskData({
@@ -211,16 +215,29 @@ export const TaskModal: React.FC<TaskModalProps> = ({
 
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
-              <Label htmlFor="project-select" className="text-sm font-medium">Project</Label>
+              <Label htmlFor="project-select" className="text-sm font-medium">
+                Project {listId ? '(Optional)' : ''}
+              </Label>
               <Select
                 value={taskData.projectId}
                 onValueChange={(value) => setTaskData({ ...taskData, projectId: value })}
-                required
+                required={!listId}
               >
                 <SelectTrigger className="border-primary/20">
-                  <SelectValue placeholder="Select project" />
+                  <SelectValue placeholder={listId ? "Select project (optional)" : "Select project"} />
                 </SelectTrigger>
                 <SelectContent>
+                  {listId && (
+                    <SelectItem value="">
+                      <div className="flex items-center space-x-2">
+                        <div className="w-3 h-3 rounded-full bg-muted" />
+                        <span>No Project</span>
+                        <span className="text-xs text-muted-foreground">
+                          (List only)
+                        </span>
+                      </div>
+                    </SelectItem>
+                  )}
                   {(areaFilter ? projects.filter(p => p.area === areaFilter) : projects).map(project => (
                     <SelectItem key={project.id} value={project.id}>
                       <div className="flex items-center space-x-2">

@@ -5,7 +5,7 @@ import { Input } from '@/components/ui/input';
 import { Progress } from '@/components/ui/progress';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { TaskPills } from '@/components/TaskPills';
-import { MoreVertical, Plus } from 'lucide-react';
+import { MoreVertical, Plus, FolderOpen, List, Zap } from 'lucide-react';
 import { ActionCard } from '@/components/ActionCard';
 
 interface Project {
@@ -14,6 +14,7 @@ interface Project {
   color: string;
   area: string;
   dueDate?: Date | null;
+  parentId?: string; // For nesting projects within projects
 }
 
 interface TaskItem {
@@ -43,6 +44,7 @@ interface Action {
   description?: string;
   type: 'alarm' | 'reminder';
   area: string;
+  projectId?: string; // Associate actions with specific projects
   // Alarm specific
   time?: string;
   enabled?: boolean;
@@ -56,6 +58,7 @@ interface CategoryBoardProps {
   tasks: TaskItem[];
   lists: ListItem[];
   actions: Action[];
+  projects?: Project[]; // For displaying child projects
   onAddList: (projectId: string, title: string) => void;
   onRenameList: (listId: string, newTitle: string) => void;
   onDeleteList: (listId: string) => void;
@@ -70,6 +73,7 @@ interface CategoryBoardProps {
   onToggleActionEnabled?: (actionId: string, enabled: boolean) => void;
   onEditAction?: (actionId: string) => void;
   onDeleteAction?: (actionId: string) => void;
+  onProjectSelect?: (projectId: string) => void;
 }
 
 export const CategoryBoard: React.FC<CategoryBoardProps> = ({
@@ -77,6 +81,7 @@ export const CategoryBoard: React.FC<CategoryBoardProps> = ({
   tasks,
   lists,
   actions,
+  projects = [],
   onAddList,
   onRenameList,
   onDeleteList,
@@ -90,7 +95,8 @@ export const CategoryBoard: React.FC<CategoryBoardProps> = ({
   onOpenCategorySelection,
   onToggleActionEnabled,
   onEditAction,
-  onDeleteAction
+  onDeleteAction,
+  onProjectSelect
 }) => {
   const dragTaskIdRef = useRef<string | null>(null);
   const dragFromListIdRef = useRef<string | null>(null);
@@ -110,6 +116,9 @@ export const CategoryBoard: React.FC<CategoryBoardProps> = ({
   const totalTasks = tasks.filter(t => t.projectId === project.id).length;
   const completedTasks = tasks.filter(t => t.projectId === project.id && t.completed).length;
   const progress = totalTasks > 0 ? (completedTasks / totalTasks) * 100 : 0;
+
+  // Filter actions that belong to this specific project
+  const projectActions = actions.filter(action => action.projectId === project.id);
 
   return (
     <div className="flex-1 p-6">
@@ -131,23 +140,68 @@ export const CategoryBoard: React.FC<CategoryBoardProps> = ({
             <Progress value={progress} />
           </div>
           <Button onClick={onOpenCategorySelection} className="bg-gradient-primary text-white">
-            <Plus className="w-4 h-4 mr-2" /> Add Category
+            <Plus className="w-4 h-4 mr-2" /> Category
           </Button>
         </div>
       </div>
 
-      {/* Lists Section */}
-      {lists.filter(l => l.projectId === project.id).length === 0 ? (
-        <Card>
-          <CardContent className="py-8">
-            <p className="text-muted-foreground">No lists yet — add one above.</p>
-          </CardContent>
-        </Card>
-      ) : (
-        <div className="flex gap-4 overflow-x-auto pb-4">
-          {lists.filter(l => l.projectId === project.id).map(list => (
-            <div key={list.id} className="w-80 flex-shrink-0">
-              <Card className="border-border">
+      {/* Unified Container for Projects, Lists, and Actions */}
+      <div className="mb-8">
+        <h2 className="text-lg font-semibold mb-4">Categories</h2>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          {/* Child Projects */}
+          {projects.filter(p => p.parentId === project.id).map(childProject => {
+            const childTasks = tasks.filter(t => t.projectId === childProject.id);
+            const done = childTasks.filter(t => t.completed).length;
+            const pct = childTasks.length > 0 ? (done / childTasks.length) * 100 : 0;
+            
+            return (
+              <Card
+                key={childProject.id}
+                className="border-border group cursor-pointer"
+                onClick={() => onProjectSelect?.(childProject.id)}
+              >
+                <CardHeader className="pb-2">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center space-x-2">
+                      <div className="p-2 rounded-lg text-white" style={{ backgroundColor: childProject.color }}>
+                        <FolderOpen className="w-4 h-4" />
+                      </div>
+                      <div>
+                        <CardTitle className="text-base">{childProject.name}</CardTitle>
+                        {childProject.dueDate && (
+                          <p className="text-xs text-muted-foreground mt-1">
+                            Due: {new Date(childProject.dueDate).toLocaleDateString()}
+                          </p>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                </CardHeader>
+                <CardContent className="pt-0">
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between text-xs text-muted-foreground">
+                      <span>{done}/{childTasks.length} completed</span>
+                      <span>{Math.round(pct)}%</span>
+                    </div>
+                    <Progress value={pct} className="h-1.5" />
+                  </div>
+                </CardContent>
+              </Card>
+            );
+          })}
+
+          {/* Lists with full task management */}
+          {lists.filter(l => l.projectId === project.id).map(list => {
+            const listTasks = tasksByList[list.id] || [];
+            const done = listTasks.filter(t => t.completed).length;
+            const pct = listTasks.length > 0 ? (done / listTasks.length) * 100 : 0;
+            
+            return (
+              <Card
+                key={list.id}
+                className="border-border"
+              >
                 <CardHeader className="py-3">
                   <div className="flex items-center justify-between">
                     <CardTitle className="text-base">
@@ -279,10 +333,32 @@ export const CategoryBoard: React.FC<CategoryBoardProps> = ({
                   </div>
                 </CardContent>
               </Card>
-            </div>
+            );
+          })}
+
+          {/* Actions */}
+          {projectActions.map(action => (
+            <ActionCard
+              key={action.id}
+              action={action}
+              onToggleEnabled={onToggleActionEnabled}
+              onEdit={onEditAction}
+              onDelete={onDeleteAction}
+            />
           ))}
+
+          {/* Empty state if no categories */}
+          {projects.filter(p => p.parentId === project.id).length === 0 &&
+           lists.filter(l => l.projectId === project.id).length === 0 &&
+           projectActions.length === 0 && (
+            <Card className="md:col-span-2">
+              <CardContent className="py-8">
+                <p className="text-muted-foreground">No categories yet — add one above.</p>
+              </CardContent>
+            </Card>
+          )}
         </div>
-      )}
+      </div>
     </div>
   );
 };
