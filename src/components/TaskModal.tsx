@@ -120,7 +120,7 @@ export const TaskModal: React.FC<TaskModalProps> = ({
       id: Date.now().toString(),
       title: taskData.title,
       description: taskData.description,
-      projectId: taskData.projectId || undefined, // Use undefined instead of empty string
+      projectId: taskData.projectId === 'no-project' ? undefined : taskData.projectId, // Handle "no-project" value
       area: selectedProject?.area || '',
       category: selectedProject?.name || '',
       startTime: finalStartTime,
@@ -228,7 +228,7 @@ export const TaskModal: React.FC<TaskModalProps> = ({
                 </SelectTrigger>
                 <SelectContent>
                   {listId && (
-                    <SelectItem value="">
+                    <SelectItem value="no-project">
                       <div className="flex items-center space-x-2">
                         <div className="w-3 h-3 rounded-full bg-muted" />
                         <span>No Project</span>
