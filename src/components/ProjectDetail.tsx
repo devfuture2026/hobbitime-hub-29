@@ -50,14 +50,10 @@ interface ProjectDetailProps {
   tasks: Task[];
   projects: Project[];
   lists: List[];
-  actions: Action[];
   onBack: () => void;
   onAddCategory: () => void;
   onProjectSelect: (projectId: string) => void;
   onListSelect: (listId: string) => void;
-  onActionToggle: (actionId: string, enabled: boolean) => void;
-  onActionEdit: (actionId: string) => void;
-  onActionDelete: (actionId: string) => void;
   onProjectRename: (projectId: string, newName: string) => void;
   onProjectDelete: (projectId: string) => void;
   onListRename: (listId: string, newTitle: string) => void;
@@ -69,14 +65,10 @@ export const ProjectDetail: React.FC<ProjectDetailProps> = ({
   tasks,
   projects,
   lists,
-  actions,
   onBack,
   onAddCategory,
   onProjectSelect,
   onListSelect,
-  onActionToggle,
-  onActionEdit,
-  onActionDelete,
   onProjectRename,
   onProjectDelete,
   onListRename,
@@ -92,12 +84,6 @@ export const ProjectDetail: React.FC<ProjectDetailProps> = ({
   const projectLists = useMemo(() => 
     lists.filter(l => l.projectId === project.id), 
     [lists, project.id]
-  );
-
-  // Get actions that belong to this project's area
-  const projectActions = useMemo(() => 
-    actions.filter(a => a.area === project.area), 
-    [actions, project.area]
   );
 
   // Calculate progress for this project
@@ -267,54 +253,8 @@ export const ProjectDetail: React.FC<ProjectDetailProps> = ({
         </div>
       )}
 
-      {/* Actions Section */}
-      {projectActions.length > 0 && (
-        <div className="mb-8">
-          <h2 className="text-lg font-semibold mb-4">Actions</h2>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {projectActions.map(action => (
-              <Card key={action.id} className="border-border">
-                <CardHeader className="pb-2">
-                  <div className="flex items-center justify-between">
-                    <CardTitle className="text-base">{action.title}</CardTitle>
-                    <div className="flex items-center space-x-2">
-                      <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                          <Button size="icon" variant="ghost" className="h-7 w-7">
-                            <MoreVertical className="w-4 h-4" />
-                          </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end">
-                          <DropdownMenuItem onClick={() => onActionEdit(action.id)}>Edit</DropdownMenuItem>
-                          <DropdownMenuItem onClick={() => onActionDelete(action.id)}>Delete</DropdownMenuItem>
-                        </DropdownMenuContent>
-                      </DropdownMenu>
-                    </div>
-                  </div>
-                </CardHeader>
-                <CardContent className="pt-0">
-                  {action.description && (
-                    <p className="text-sm text-muted-foreground mb-2">{action.description}</p>
-                  )}
-                  <div className="flex items-center justify-between">
-                    <span className="text-xs text-muted-foreground capitalize">{action.type}</span>
-                    <Button
-                      size="sm"
-                      variant={action.enabled ? "default" : "outline"}
-                      onClick={() => onActionToggle(action.id, !action.enabled)}
-                    >
-                      {action.enabled ? 'Enabled' : 'Disabled'}
-                    </Button>
-                  </div>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
-        </div>
-      )}
-
       {/* Empty State */}
-      {childProjects.length === 0 && projectLists.length === 0 && projectActions.length === 0 && (
+      {childProjects.length === 0 && projectLists.length === 0 && (
         <Card className="md:col-span-2">
           <CardContent className="py-8">
             <p className="text-muted-foreground">No categories yet — add one above.</p>

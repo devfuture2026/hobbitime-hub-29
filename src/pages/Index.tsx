@@ -654,7 +654,6 @@ const Index = () => {
                 tasks={tasks}
                 projects={projects}
                 lists={lists}
-                actions={actions}
                 onBack={handleBackToProject}
                 onAddCategory={() => {
                   const project = projects.find(p => p.id === selectedProjectDetailId);
@@ -666,15 +665,6 @@ const Index = () => {
                 onListSelect={(listId) => {
                   // For now, just log - could implement list detail view later
                   console.log('List selected:', listId);
-                }}
-                onActionToggle={(actionId, enabled) => {
-                  setActions(prev => prev.map(a => a.id === actionId ? { ...a, enabled } : a));
-                }}
-                onActionEdit={(actionId) => {
-                  console.log('Edit action:', actionId);
-                }}
-                onActionDelete={(actionId) => {
-                  setActions(prev => prev.filter(a => a.id !== actionId));
                 }}
                 onProjectRename={(projectId, newName) => {
                   setProjects(prev => prev.map(p => p.id === projectId ? { ...p, name: newName } : p));
