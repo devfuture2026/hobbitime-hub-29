@@ -117,8 +117,6 @@ export const CategoryBoard: React.FC<CategoryBoardProps> = ({
   const completedTasks = tasks.filter(t => t.projectId === project.id && t.completed).length;
   const progress = totalTasks > 0 ? (completedTasks / totalTasks) * 100 : 0;
 
-  // Filter actions that belong to this specific project
-  const projectActions = actions.filter(action => action.projectId === project.id);
 
   return (
     <div className="flex-1 p-6">
@@ -336,21 +334,9 @@ export const CategoryBoard: React.FC<CategoryBoardProps> = ({
             );
           })}
 
-          {/* Actions */}
-          {projectActions.map(action => (
-            <ActionCard
-              key={action.id}
-              action={action}
-              onToggleEnabled={onToggleActionEnabled}
-              onEdit={onEditAction}
-              onDelete={onDeleteAction}
-            />
-          ))}
-
           {/* Empty state if no categories */}
           {projects.filter(p => p.parentId === project.id).length === 0 &&
-           lists.filter(l => l.projectId === project.id).length === 0 &&
-           projectActions.length === 0 && (
+           lists.filter(l => l.projectId === project.id).length === 0 && (
             <Card className="md:col-span-2">
               <CardContent className="py-8">
                 <p className="text-muted-foreground">No categories yet — add one above.</p>
