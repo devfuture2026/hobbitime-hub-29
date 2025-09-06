@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -26,13 +26,15 @@ interface ProjectModalProps {
   onClose: () => void;
   onCreateProject: (project: Omit<Project, 'id' | 'tasksCount' | 'completedTasks'>) => void;
   lockedArea?: string;
+  parentProjectId?: string; // For creating sub-projects
 }
 
 export const ProjectModal: React.FC<ProjectModalProps> = ({
   isOpen,
   onClose,
   onCreateProject,
-  lockedArea
+  lockedArea,
+  parentProjectId
 }) => {
   const [projectData, setProjectData] = useState({
     name: '',
@@ -40,7 +42,13 @@ export const ProjectModal: React.FC<ProjectModalProps> = ({
     category: 'personal' as 'hobby' | 'work' | 'personal',
     area: lockedArea || 'Development',
     dueDate: null as Date | null,
+    parentId: parentProjectId || undefined,
   });
+
+  // Update parentId when parentProjectId changes
+  useEffect(() => {
+    setProjectData(prev => ({ ...prev, parentId: parentProjectId || undefined }));
+  }, [parentProjectId]);
 
   const colors = [
     '#3B82F6', '#10B981', '#F59E0B', '#EF4444', '#8B5CF6',
@@ -76,6 +84,7 @@ export const ProjectModal: React.FC<ProjectModalProps> = ({
       category: 'personal',
       area: lockedArea || 'Development',
       dueDate: null,
+      parentId: parentProjectId || undefined,
     });
   };
 

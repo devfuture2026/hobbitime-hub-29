@@ -6,7 +6,7 @@ import { Progress } from '@/components/ui/progress';
 import { ArrowLeft, MoreVertical, Code, Heart, Home, GraduationCap, Users, Gamepad2, DollarSign, Brain, Plus, FolderOpen, List, Zap } from 'lucide-react';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { ActionCard } from '@/components/ActionCard';
-import { TaskModal } from '@/components/TaskModal';
+
 import { TaskPills } from '@/components/TaskPills';
 
 interface Task {
@@ -62,7 +62,7 @@ interface AreaDashboardProps {
   actions?: Action[]; // Add actions prop
   lists?: ListItem[]; // Add lists prop
   onBack: () => void;
-  onAddCategory: (areaName: string) => void;
+  onAddCategory: (areaName: string, parentProjectId?: string) => void;
   onCategorySelect: (projectId: string) => void;
   onQuickAddTask: (projectId: string) => void;
   onReorderCategories: (areaName: string, sourceId: string, targetId: string) => void;
@@ -104,43 +104,13 @@ export const AreaDashboard: React.FC<AreaDashboardProps> = ({
   onDeleteTask,
   onCreateTask
 }) => {
-  // State for TaskModal
-  const [isTaskModalOpen, setIsTaskModalOpen] = useState(false);
-  const [selectedTime, setSelectedTime] = useState<Date | null>(null);
-  const [quickAddListId, setQuickAddListId] = useState<string>('');
-  const [prefilledTaskTitle, setPrefilledTaskTitle] = useState<string>('');
+
   
   // State for project navigation
   const [currentProjectId, setCurrentProjectId] = useState<string | null>(null);
   const [breadcrumbPath, setBreadcrumbPath] = useState<Project[]>([]);
 
-  // Handler for opening TaskModal from list input
-  const handleOpenTaskModal = useCallback((listId: string, title: string) => {
-    console.log('AreaDashboard - Opening TaskModal for list:', listId, 'with title:', title); // Debug log
-    setQuickAddListId(listId);
-    setPrefilledTaskTitle(title);
-    setSelectedTime(new Date());
-    setIsTaskModalOpen(true);
-  }, []);
 
-  // Handler for closing TaskModal
-  const handleCloseTaskModal = useCallback(() => {
-    console.log('AreaDashboard - Closing TaskModal'); // Debug log
-    setIsTaskModalOpen(false);
-    setSelectedTime(null);
-    setQuickAddListId('');
-    setPrefilledTaskTitle('');
-  }, []);
-
-  // Wrapper for onCreateTask to add debugging
-  const handleCreateTaskWrapper = useCallback((task: any) => {
-    console.log('AreaDashboard - onCreateTask called with:', task); // Debug log
-    if (onCreateTask) {
-      onCreateTask(task);
-    } else {
-      console.warn('AreaDashboard - onCreateTask prop is not provided!'); // Debug log
-    }
-  }, [onCreateTask]);
 
   // Navigation handlers
   const handleProjectClick = useCallback((projectId: string) => {
@@ -177,19 +147,24 @@ export const AreaDashboard: React.FC<AreaDashboardProps> = ({
 
   const areaProjectIds = useMemo(() => new Set(currentProjects.map(p => p.id)), [currentProjects]);
   
-  // Filter lists that belong to this area (using area-specific project IDs)
-  const areaLists = useMemo(() => {
-    const areaProjectId = `area-${areaName.toLowerCase()}`;
-    return lists.filter(l => l.projectId === areaProjectId);
-  }, [lists, areaName]);
-  
-  // Filter tasks that belong to this area (either by project or by list)
-  const areaTasks = useMemo(() => {
+  // Filter lists and tasks that belong to this area
+  const { areaLists, areaTasks } = useMemo(() => {
+    let filteredLists;
+    
+    if (currentProjectId) {
+      // When inside a project, show lists that belong to that specific project
+      filteredLists = lists.filter(l => l.projectId === currentProjectId);
+    } else {
+      // When at area level, show lists that belong to the area (no specific project)
+      const areaProjectId = `area-${areaName.toLowerCase()}`;
+      filteredLists = lists.filter(l => l.projectId === areaProjectId);
+    }
+    
     // Tasks that belong to area projects
     const projectTasks = tasks.filter(t => t.projectId && areaProjectIds.has(t.projectId));
     
     // Tasks that belong to area lists (even if they don't have a projectId yet)
-    const listTasks = tasks.filter(t => t.listId && areaLists.some(list => list.id === t.listId));
+    const listTasks = tasks.filter(t => t.listId && filteredLists.some(list => list.id === t.listId));
     
     // Combine and remove duplicates
     const allTasks = [...projectTasks, ...listTasks];
@@ -197,18 +172,40 @@ export const AreaDashboard: React.FC<AreaDashboardProps> = ({
       index === self.findIndex(t => t.id === task.id)
     );
     
-         console.log('AreaDashboard - All tasks:', tasks); // Debug log
-     console.log('AreaDashboard - Area projects:', currentProjects); // Debug log
-     console.log('AreaDashboard - Area lists:', areaLists); // Debug log
+    console.log('AreaDashboard - Current project ID:', currentProjectId); // Debug log
+    console.log('AreaDashboard - All tasks:', tasks); // Debug log
+    console.log('AreaDashboard - Area projects:', currentProjects); // Debug log
+    console.log('AreaDashboard - Filtered lists:', filteredLists); // Debug log
     console.log('AreaDashboard - Project tasks:', projectTasks); // Debug log
     console.log('AreaDashboard - List tasks:', listTasks); // Debug log
     console.log('AreaDashboard - Final area tasks:', uniqueTasks); // Debug log
     
-    return uniqueTasks;
-  }, [tasks, areaProjectIds, areaLists]);
+    return {
+      areaLists: filteredLists,
+      areaTasks: uniqueTasks
+    };
+  }, [tasks, areaProjectIds, lists, areaName, currentProjectId]);
   
-  // Filter actions that belong to this area but don't have a specific projectId (area-level actions)
-  const areaActions = useMemo(() => actions.filter(a => a.area === areaName && !a.projectId), [actions, areaName]);
+  // Filter actions based on context:
+  // - If we're in a project (currentProjectId is set), only show project-specific actions
+  // - If we're at area level, show area-level actions (no projectId)
+  const areaActions = useMemo(() => {
+    console.log('AreaDashboard - All actions:', actions);
+    console.log('AreaDashboard - Area name:', areaName);
+    console.log('AreaDashboard - Current project ID:', currentProjectId);
+    
+    if (currentProjectId) {
+      // We're inside a project - only show actions specific to this project
+      const filtered = actions.filter(a => a.projectId === currentProjectId);
+      console.log('AreaDashboard - Project-specific actions:', filtered);
+      return filtered;
+    } else {
+      // We're at area level - only show area-level actions (no projectId)
+      const filtered = actions.filter(a => a.area === areaName && !a.projectId);
+      console.log('AreaDashboard - Area-level actions:', filtered);
+      return filtered;
+    }
+  }, [actions, areaName, currentProjectId]);
 
   const completedTasks = areaTasks.filter(t => t.completed).length;
   const progress = areaTasks.length > 0 ? (completedTasks / areaTasks.length) * 100 : 0;
@@ -258,7 +255,7 @@ export const AreaDashboard: React.FC<AreaDashboardProps> = ({
   }, []);
 
   return (
-    <div className="flex-1 p-6">
+    <div className="flex-1 p-6 max-w-full overflow-hidden">
       <div className="flex items-center justify-between mb-6">
         <div className="flex items-center space-x-3">
           <Button variant="ghost" onClick={onBack} className="border border-border">
@@ -288,29 +285,41 @@ export const AreaDashboard: React.FC<AreaDashboardProps> = ({
                    getAreaDescription(areaName)
                  }
                </p>
-               {/* Breadcrumb navigation */}
-               {breadcrumbPath.length > 0 && (
-                 <div className="flex items-center space-x-2 mt-1">
-                   <span className="text-xs text-muted-foreground">Path:</span>
-                   {breadcrumbPath.map((project, index) => (
-                     <React.Fragment key={project.id}>
-                       <button
-                         onClick={() => {
-                           const newPath = breadcrumbPath.slice(0, index + 1);
-                           setBreadcrumbPath(newPath);
-                           setCurrentProjectId(project.id);
-                         }}
-                         className="text-xs text-primary hover:underline"
-                       >
-                         {project.name}
-                       </button>
-                       {index < breadcrumbPath.length - 1 && (
-                         <span className="text-xs text-muted-foreground">/</span>
-                       )}
-                     </React.Fragment>
-                   ))}
-                 </div>
-               )}
+               {/* Breadcrumb navigation - Always visible */}
+               <div className="flex items-center space-x-2 mt-1">
+                 <span className="text-xs text-muted-foreground">Path:</span>
+                 <button
+                   onClick={() => {
+                     setCurrentProjectId(null);
+                     setBreadcrumbPath([]);
+                   }}
+                   className="text-xs text-primary hover:underline"
+                 >
+                   {areaName}
+                 </button>
+                 {breadcrumbPath.length > 0 && (
+                   <>
+                     <span className="text-xs text-muted-foreground">/</span>
+                     {breadcrumbPath.map((project, index) => (
+                       <React.Fragment key={project.id}>
+                         <button
+                           onClick={() => {
+                             const newPath = breadcrumbPath.slice(0, index + 1);
+                             setBreadcrumbPath(newPath);
+                             setCurrentProjectId(project.id);
+                           }}
+                           className="text-xs text-primary hover:underline"
+                         >
+                           {project.name}
+                         </button>
+                         {index < breadcrumbPath.length - 1 && (
+                           <span className="text-xs text-muted-foreground">/</span>
+                         )}
+                       </React.Fragment>
+                     ))}
+                   </>
+                 )}
+               </div>
              </div>
           </div>
         </div>
@@ -319,32 +328,9 @@ export const AreaDashboard: React.FC<AreaDashboardProps> = ({
             <div className="text-sm text-muted-foreground mb-1">Progress</div>
             <Progress value={progress} />
           </div>
-                     <Button onClick={() => {
-             if (currentProjectId) {
-               // Create a sub-project within the current project
-               const projectName = window.prompt('Enter sub-project name:')?.trim();
-               if (projectName) {
-                 // Create a new project with the current project as parent
-                 const newProject = {
-                   id: Date.now().toString(),
-                   name: projectName,
-                   color: '#3B82F6', // Default blue color
-                   category: 'personal' as const,
-                   area: areaName,
-                   parentId: currentProjectId
-                 };
-                 // Add to projects array (this would need to be handled by the parent component)
-                 console.log('Creating sub-project:', newProject);
-                 // For now, we'll use the existing onAddCategory but we need to modify it
-                 // to handle sub-projects. This is a temporary solution.
-                 onAddCategory(areaName); // This needs to be updated to handle sub-projects
-               }
-             } else {
-               onAddCategory(areaName);
-             }
-           }} className="bg-gradient-primary text-white">
+                     <Button onClick={() => onAddCategory(areaName, currentProjectId || undefined)} className="bg-gradient-primary text-white">
              <Plus className="w-4 h-4 mr-2" />
-             {currentProjectId ? 'Sub-Category' : 'Category'}
+             Category
            </Button>
         </div>
       </div>
@@ -354,7 +340,7 @@ export const AreaDashboard: React.FC<AreaDashboardProps> = ({
                  <h2 className="text-lg font-semibold mb-4">
            {currentProjectId ? 'Sub-Categories' : 'Categories'}
          </h2>
-        <div className="flex flex-wrap gap-4">
+        <div className="flex flex-wrap gap-4 max-w-full items-start">
                      {/* Projects */}
            {currentProjects.map(project => {
             const projectTasks = areaTasks.filter(t => t.projectId === project.id);
@@ -363,7 +349,7 @@ export const AreaDashboard: React.FC<AreaDashboardProps> = ({
             return (
                              <Card
                  key={project.id}
-                 className="border-border group cursor-pointer w-80 h-32 flex flex-col"
+                 className="border-border group cursor-pointer w-96 h-32 flex flex-col"
                  draggable
                  onDragStart={(e) => { draggedIdRef.current = project.id; e.dataTransfer.effectAllowed = 'move'; }}
                  onDragOver={(e) => { e.preventDefault(); e.dataTransfer.dropEffect = 'move'; }}
@@ -429,10 +415,10 @@ export const AreaDashboard: React.FC<AreaDashboardProps> = ({
             const pct = listTasks.length > 0 ? (done / listTasks.length) * 100 : 0;
             
             return (
-                             <Card
-                 key={list.id}
-                 className="border-border group w-80 h-32 flex flex-col"
-               >
+                            <Card
+                key={list.id}
+                className={`border-border group w-80 flex flex-col ${listTasks.length === 0 ? 'min-h-[96px]' : ''}`}
+              >
                 <CardHeader className="py-3 flex-shrink-0">
                   <div className="flex items-center justify-between">
                     <div>
@@ -459,17 +445,17 @@ export const AreaDashboard: React.FC<AreaDashboardProps> = ({
                   </div>
                 </CardHeader>
                 <CardContent
-                  className="space-y-2 min-h-[60px] flex-1 flex flex-col"
+                  className={`space-y-2 p-3 pt-0 ${listTasks.length > 0 ? 'flex-1 flex flex-col' : ''}`}
                 >
-                  <div className="space-y-2 min-h-[60px] flex-1 flex flex-col">
-                    <div className="flex-1 overflow-y-auto space-y-2">
+                  <div className={`space-y-2 ${listTasks.length > 0 ? 'flex-1 flex flex-col' : ''}`}>
+                    <div className={`${listTasks.length > 0 ? 'flex-1 overflow-y-auto space-y-2 max-h-64' : ''}`}>
                        {listTasks.length === 0 ? (
                         <p className="text-muted-foreground text-sm">No tasks yet — add one below.</p>
                        ) : (
                         listTasks.map(task => (
-                          <div key={task.id} className="group p-3 rounded-md bg-accent/5 hover:bg-accent/10 transition-colors">
+                          <div key={task.id} className="group p-3 rounded-md bg-accent/5 hover:bg-accent/10 transition-colors min-h-[80px]">
                             <div className="flex items-center justify-between mb-2">
-                              <div className="flex items-center space-x-2">
+                              <div className="flex items-center space-x-2 flex-1 min-w-0">
                                 <input
                                   type="checkbox"
                                   checked={task.completed}
@@ -478,13 +464,13 @@ export const AreaDashboard: React.FC<AreaDashboardProps> = ({
                                       onToggleTask(task.id);
                                     }
                                   }}
-                                  className="rounded border-border"
+                                  className="rounded border-border flex-shrink-0"
                                 />
-                                <span className={`text-sm font-medium ${task.completed ? 'line-through text-muted-foreground' : ''}`}>
+                                <span className={`text-sm font-medium truncate ${task.completed ? 'line-through text-muted-foreground' : ''}`}>
                                   {task.title}
                                 </span>
                               </div>
-                              <div className="flex items-center space-x-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                              <div className="flex items-center space-x-1 opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0">
                                 <Button
                                   size="sm"
                                   variant="ghost"
@@ -522,7 +508,7 @@ export const AreaDashboard: React.FC<AreaDashboardProps> = ({
                               priority={task.priority}
                               effortLevel={task.effortLevel}
                               description={task.description}
-                              className="mb-2"
+                              className="mt-2"
                             />
                           </div>
                         ))
@@ -573,23 +559,10 @@ export const AreaDashboard: React.FC<AreaDashboardProps> = ({
         </div>
       </div>
 
-      {/* TaskModal for creating new tasks */}
-      {isTaskModalOpen && (
-        <TaskModal
-          isOpen={isTaskModalOpen}
-          onClose={handleCloseTaskModal}
-          onCreateTask={handleCreateTaskWrapper}
-          selectedTime={selectedTime}
-          projects={projects}
-          preselectedProjectId={undefined}
-          areaFilter={areaName}
-          prefilledTitle={prefilledTaskTitle}
-          listId={quickAddListId}
-        />
-      )}
+
     </div>
   );
 };
 
-export default AreaDashboard;
+// ... existing code ...
 

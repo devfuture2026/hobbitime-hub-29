@@ -84,9 +84,32 @@ const Index = () => {
       id: 'list-1',
       title: 'New List',
       projectId: 'area-development'
+    },
+    {
+      id: 'list-2',
+      title: 'Backend Tasks',
+      projectId: '5'
     }
   ]);
-  const [actions, setActions] = useState<Action[]>([]);
+  const [actions, setActions] = useState<Action[]>([
+    {
+      id: 'dev-action-1',
+      title: 'Code Review Reminder',
+      description: 'Daily code review and documentation updates',
+      type: 'reminder',
+      area: 'Development',
+      dueDate: new Date('2024-12-31')
+    },
+    {
+      id: 'mindtrack-action-1',
+      title: 'Database Backup',
+      description: 'Weekly database backup and maintenance',
+      type: 'reminder',
+      area: 'Development',
+      projectId: '5', // MindTrack: Otto project ID
+      dueDate: new Date('2024-12-31')
+    }
+  ]);
   const [categoryFilter, setCategoryFilter] = useState<'all' | 'active' | 'completed' | 'overdue'>('all');
   const [quickAddTaskData, setQuickAddTaskData] = useState<{ title: string; listId: string } | null>(null);
   const [categorySelectionContext, setCategorySelectionContext] = useState<{ type: 'area' | 'project'; name: string; id?: string } | null>(null);
@@ -164,34 +187,57 @@ const Index = () => {
       category: 'work' as const,
       area: 'Development',
       dueDate: null
+    },
+    {
+      id: '6',
+      name: 'API Integration',
+      color: '#8B5CF6',
+      tasksCount: 5,
+      completedTasks: 1,
+      category: 'work' as const,
+      area: 'Development',
+      dueDate: null,
+      parentId: '5' // This is a sub-project of MindTrack: Otto
     }
   ]);
 
 
- const [tasks, setTasks] = useState<Task[]>([
-
-  /* This is a place holder for the tasks.
-    {
-      id: '1',
-      title: 'Spanish Vocabulary',
-      projectId: '1',
-      startTime: new Date(new Date().setHours(9, 0, 0, 0)),
-      duration: 1,
-      color: '#10B981',
-      priority: 'medium',
-      completed: false
-    },
-    {
-      id: '2',
-      title: 'Morning Workout',
-      projectId: '2',
-      startTime: new Date(new Date().setHours(7, 0, 0, 0)),
-      duration: 1,
-      color: '#F59E0B',
-      priority: 'high',
-      completed: false
-    }
-    */
+  const [tasks, setTasks] = useState<Task[]>([
+   // Sample tasks for testing
+   {
+     id: '1',
+     title: 'Learn React Hooks',
+     projectId: '',
+     startTime: new Date(new Date().setHours(9, 0, 0, 0)),
+     duration: 2,
+     color: '#3B82F6',
+     priority: 'high',
+     completed: false,
+     listId: 'list-1',
+     dueDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000), // 7 days from now
+     area: 'Development',
+     category: 'Learning',
+     effortLevel: 'large',
+     isRecurring: false,
+     description: 'Master React hooks including useState, useEffect, and custom hooks'
+   },
+   {
+     id: '2',
+     title: 'Setup development environment',
+     projectId: '',
+     startTime: new Date(new Date().setHours(10, 0, 0, 0)),
+     duration: 1,
+     color: '#10B981',
+     priority: 'medium',
+     completed: true,
+     listId: 'list-1',
+     dueDate: null,
+     area: 'Development',
+     category: 'Setup',
+     effortLevel: 'medium',
+     isRecurring: false,
+     description: 'Install Node.js, VS Code, and necessary extensions'
+   }
   ]);
 
   const [alarms, setAlarms] = useState([
@@ -275,6 +321,16 @@ const Index = () => {
     updateProjectCounts(tasks);
   }, [tasks, updateProjectCounts]);
 
+  // Debug logging for tasks and lists
+  useEffect(() => {
+    console.log('Index - Current state:', {
+      tasks: tasks,
+      lists: lists,
+      selectedArea: selectedArea,
+      viewMode: viewMode
+    });
+  }, [tasks, lists, selectedArea, viewMode]);
+
   const handleCreateProject = useCallback((projectData: any) => {
     const newProject = {
       id: Date.now().toString(),
@@ -337,13 +393,26 @@ const Index = () => {
   }, [categorySelectionContext]);
 
   const handleSelectAction = useCallback(() => {
+    console.log('handleSelectAction called');
     setIsCategorySelectionModalOpen(false);
     setIsActionModalOpen(true);
+    console.log('ActionModal should now be open');
     // The ActionModal will use the context to set the locked area
   }, []);
 
   const handleCreateAction = useCallback((actionData: Action) => {
-    setActions(prevActions => [...prevActions, actionData]);
+    console.log('Creating action:', actionData);
+    // Ensure the action has a valid area and doesn't cross over
+    if (!actionData.area) {
+      console.error('Action must have an area assigned');
+      return;
+    }
+    
+    setActions(prevActions => {
+      const newActions = [...prevActions, actionData];
+      console.log('Updated actions:', newActions);
+      return newActions;
+    });
   }, []);
 
   const handleActionModalClose = useCallback(() => {
@@ -525,7 +594,20 @@ const Index = () => {
                 actions={actions}
                 lists={lists}
                 onBack={handleBackToAreas}
-                onAddCategory={(areaName) => handleOpenCategorySelection({ type: 'area', name: areaName })}
+                onAddCategory={(areaName, parentProjectId) => {
+                  if (parentProjectId) {
+                    // Creating a sub-project within an existing project
+                    const parentProject = projects.find(p => p.id === parentProjectId);
+                    handleOpenCategorySelection({ 
+                      type: 'project', 
+                      name: parentProject?.name || 'Project', 
+                      id: parentProjectId 
+                    });
+                  } else {
+                    // Creating a top-level project in an area
+                    handleOpenCategorySelection({ type: 'area', name: areaName });
+                  }
+                }}
                 onCategorySelect={handleCategorySelect}
                 onQuickAddTask={(projectId) => {
                   setQuickAddProjectId(projectId);
@@ -563,11 +645,10 @@ const Index = () => {
                 onRenameList={(listId, newTitle) => setLists(prev => prev.map(l => l.id === listId ? { ...l, title: newTitle } : l))}
                 onDeleteList={(listId) => setLists(prev => prev.filter(l => l.id !== listId))}
                 onAddTask={(listId, title) => {
-                  // Instead of directly creating a task, open the TaskModal with prefilled title
+                  // Open TaskModal to let user enter tag data
+                  setQuickAddTaskData({ title, listId });
                   setSelectedTime(new Date());
                   setIsTaskModalOpen(true);
-                  // Store the title and listId for when the modal opens
-                  setQuickAddTaskData({ title, listId });
                 }}
                 onToggleTask={(taskId) => setTasks(prev => prev.map(t => t.id === taskId ? { ...t, completed: !t.completed } : t))}
                 onEditTask={(taskId, changes) => setTasks(prev => prev.map(t => t.id === taskId ? { ...t, ...changes } : t))}
@@ -592,12 +673,10 @@ const Index = () => {
                   setTasks(prev => prev.map(t => t.listId === listId ? { ...t, listId: undefined } : t));
                 }}
                 onAddTask={(listId, title) => {
-                  // Instead of directly creating a task, open the TaskModal with prefilled title
-                  setQuickAddProjectId(selectedCategoryId!);
+                  // Open TaskModal to let user enter tag data
+                  setQuickAddTaskData({ title, listId });
                   setSelectedTime(new Date());
                   setIsTaskModalOpen(true);
-                  // Store the title and listId for when the modal opens
-                  setQuickAddTaskData({ title, listId });
                 }}
                 onToggleTask={(taskId) => setTasks(prev => prev.map(t => t.id === taskId ? { ...t, completed: !t.completed } : t))}
                 onEditTask={(taskId, changes) => setTasks(prev => prev.map(t => t.id === taskId ? { ...t, ...changes } : t))}
@@ -736,6 +815,7 @@ const Index = () => {
           onClose={handleCloseProjectModal}
           onCreateProject={handleCreateProject}
           lockedArea={categorySelectionContext?.type === 'area' ? categorySelectionContext.name : selectedArea || undefined}
+          parentProjectId={categorySelectionContext?.type === 'project' ? categorySelectionContext.id : undefined}
         />
       )}
 
@@ -744,10 +824,21 @@ const Index = () => {
            isOpen={isActionModalOpen}
            onClose={handleActionModalClose}
            onCreateAction={handleCreateAction}
-           lockedArea={categorySelectionContext?.type === 'area' ? categorySelectionContext.name : 
-                      categorySelectionContext?.type === 'project' ? projects.find(p => p.id === categorySelectionContext.id)?.area :
-                      selectedCategoryId ? projects.find(p => p.id === selectedCategoryId)?.area : 
-                      selectedArea || undefined}
+           lockedArea={(() => {
+             // Determine the locked area based on context
+             if (categorySelectionContext?.type === 'area') {
+               return categorySelectionContext.name;
+             }
+             if (categorySelectionContext?.type === 'project') {
+               const project = projects.find(p => p.id === categorySelectionContext.id);
+               return project?.area;
+             }
+             if (selectedCategoryId) {
+               const project = projects.find(p => p.id === selectedCategoryId);
+               return project?.area;
+             }
+             return selectedArea || undefined;
+           })()}
            lockedProjectId={categorySelectionContext?.type === 'project' ? categorySelectionContext.id : 
                            selectedCategoryId || undefined}
          />

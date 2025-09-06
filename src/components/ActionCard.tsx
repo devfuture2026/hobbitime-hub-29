@@ -43,19 +43,19 @@ export const ActionCard: React.FC<ActionCardProps> = ({
   };
 
   return (
-    <Card className="w-80 h-100 border-border group cursor-pointer bg-gradient-card">
-      <CardHeader className="pb-2">
+    <Card className="w-80 h-32 border-border group cursor-pointer bg-gradient-card">
+      <CardHeader className="p-3 pb-2">
         <div className="flex items-center justify-between">
           <div className="flex items-center space-x-2">
-            <div className={`p-2 rounded-lg ${
+            <div className={`p-1.5 rounded-lg ${
               action.type === 'alarm' 
                 ? 'bg-primary/10 text-primary' 
                 : 'bg-accent/10 text-accent'
             }`}>
               {action.type === 'alarm' ? (
-                <Clock className="w-4 h-4" />
+                <Clock className="w-3.5 h-3.5" />
               ) : (
-                <Bell className="w-4 h-4" />
+                <Bell className="w-3.5 h-3.5" />
               )}
             </div>
             <Badge variant="outline" className="text-xs">
@@ -63,7 +63,7 @@ export const ActionCard: React.FC<ActionCardProps> = ({
             </Badge>
           </div>
           <div className="flex items-center space-x-2">
-            {action.type === 'alarm' && onToggleEnabled && (
+            {onToggleEnabled && (
               <Switch
                 checked={action.enabled || false}
                 onCheckedChange={(enabled) => onToggleEnabled(action.id, enabled)}
@@ -71,8 +71,8 @@ export const ActionCard: React.FC<ActionCardProps> = ({
             )}
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <Button size="icon" variant="ghost" className="h-7 w-7 opacity-0 group-hover:opacity-100 text-muted-foreground hover:text-foreground">
-                  <MoreVertical className="w-4 h-4" />
+                <Button size="icon" variant="ghost" className="h-6 w-6 opacity-0 group-hover:opacity-100 text-muted-foreground hover:text-foreground">
+                  <MoreVertical className="w-3.5 h-3.5" />
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end">
@@ -95,23 +95,23 @@ export const ActionCard: React.FC<ActionCardProps> = ({
         </div>
       </CardHeader>
       
-      <CardContent className="pt-0">
-        <div className="space-y-3">
+      <CardContent className="p-3 pt-0 pb-1.5">
+        <div className="space-y-1">
           <div>
-            <CardTitle className="text-base font-semibold">{action.title}</CardTitle>
+            <CardTitle className="text-sm font-semibold">{action.title}</CardTitle>
             {action.description && (
-              <p className="text-sm text-muted-foreground mt-1 line-clamp-2">
+              <p className="text-xs text-muted-foreground mt-0.5 line-clamp-2">
                 {action.description}
               </p>
             )}
           </div>
 
           {action.type === 'alarm' ? (
-            <div className="space-y-2">
+            <div className="space-y-0.5">
               {action.time && (
-                <div className="flex items-center space-x-2 text-sm">
-                  <Clock className="w-4 h-4 text-muted-foreground" />
-                  <span className="font-mono text-lg">{action.time}</span>
+                <div className="flex items-center space-x-2 text-xs">
+                  <Clock className="w-3.5 h-3.5 text-muted-foreground" />
+                  <span className="font-mono text-sm">{action.time}</span>
                 </div>
               )}
               {action.daysOfWeek && action.daysOfWeek.length > 0 && (
@@ -125,10 +125,10 @@ export const ActionCard: React.FC<ActionCardProps> = ({
               )}
             </div>
           ) : (
-            <div className="space-y-2">
+            <div className="space-y-0.5">
               {action.dueDate && (
-                <div className="flex items-center space-x-2 text-sm">
-                  <Calendar className="w-4 h-4 text-muted-foreground" />
+                <div className="flex items-center space-x-2 text-xs">
+                  <Calendar className="w-3.5 h-3.5 text-muted-foreground" />
                   <span>{format(action.dueDate, 'MMM d, yyyy')}</span>
                 </div>
               )}

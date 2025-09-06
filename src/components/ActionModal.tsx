@@ -57,11 +57,14 @@ export const ActionModal: React.FC<ActionModalProps> = ({
 
   useEffect(() => {
     if (isOpen) {
+      console.log('ActionModal - useEffect triggered, lockedArea:', lockedArea);
+      // Ensure the area is always set to the locked area to prevent cross-over
+      const enforcedArea = lockedArea || 'Development'; // Default fallback
       setActionData({
         title: '',
         description: '',
         type: 'reminder',
-        area: lockedArea || '',
+        area: enforcedArea,
         time: '09:00',
         enabled: true,
         daysOfWeek: [],
@@ -72,7 +75,16 @@ export const ActionModal: React.FC<ActionModalProps> = ({
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!actionData.title || !actionData.area) return;
+    console.log('ActionModal - handleSubmit called');
+    console.log('ActionModal - actionData:', actionData);
+    console.log('ActionModal - lockedArea:', lockedArea);
+    
+    if (!actionData.title || !actionData.area) {
+      console.log('ActionModal - Validation failed: title or area is missing');
+      console.log('ActionModal - title:', actionData.title);
+      console.log('ActionModal - area:', actionData.area);
+      return;
+    }
 
     const action = {
       id: Date.now().toString(),
@@ -90,6 +102,7 @@ export const ActionModal: React.FC<ActionModalProps> = ({
       })
     };
 
+    console.log('ActionModal - Submitting action:', action);
     onCreateAction(action);
     onClose();
   };
@@ -167,12 +180,15 @@ export const ActionModal: React.FC<ActionModalProps> = ({
             />
           </div>
 
-          <div className="space-y-2">
+                    <div className="space-y-2">
             <Label className="text-sm font-medium">Area</Label>
+            <div className="text-sm text-muted-foreground mb-2">
+              Action will be created in: <span className="font-medium text-foreground">{actionData.area}</span>
+            </div>
             <Select
               value={actionData.area}
               onValueChange={(value) => setActionData({ ...actionData, area: value })}
-              disabled={!!lockedArea}
+              disabled={true} // Always disabled to prevent cross-over
               required
             >
               <SelectTrigger className="border-primary/20">

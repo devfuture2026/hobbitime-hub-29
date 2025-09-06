@@ -231,7 +231,7 @@ export const CategoryBoard: React.FC<CategoryBoardProps> = ({
                   </div>
                 </CardHeader>
                 <CardContent
-                  className="space-y-2 min-h-[60px]"
+                  className="space-y-2 min-h-[100px]"
                   onDragOver={(e) => { e.preventDefault(); e.dataTransfer.dropEffect = 'move'; }}
                   onDrop={() => {
                     if (dragTaskIdRef.current) {
@@ -363,4 +363,4 @@ export const CategoryBoard: React.FC<CategoryBoardProps> = ({
   );
 };
 
-export default CategoryBoard;
+// ... existing code ...
